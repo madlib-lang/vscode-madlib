@@ -1,0 +1,173 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Madlib",
+  "patterns": [
+    {
+      "include": "#where"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#functions"
+    },
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#types"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.madlib",
+          "match": "\\b(if|else|where|is)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.madlib",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.madlib",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.madlib",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.madlib",
+          "match": "\\b([0-9]|\\.)+\\b"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        { "include": "#types" },
+        { "include": "#keywords" },
+        {
+          "match": "([a-zA-Z]+)[ ]*=[ ]*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s.*",
+          "captures": {
+            "1": { "name": "entity.name.function.madlib" },
+            "2": {
+              "name": "variable.parameter.madlib",
+              "patterns": [
+                {
+                  "name": "constant.character.escape.madlib",
+                  "match": "\\,"
+                }
+              ]
+            },
+            "3": { "name": "keyword.operator.double-colon.madlib" }
+          }
+        },
+        {
+          "match": "([a-zA-Z]+)\\s*(::)\\s(.*)",
+          "captures": {
+            "1": { "name": "entity.name.function.madlib" },
+            "2": { "name": "keyword.operator.double-colon.madlib" },
+            "3": {
+              "patterns": [
+                { "name": "storage.type.madlib", "match": "[A-Z]+[A-Za-z0-9]*" },
+                { "name": "keyword.operator.arrow.madlib", "match": "->" }
+              ]
+            }
+          },
+          "name": "meta.function.type-declaration.madlib"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "match": "->",
+          "name": "keyword.operator.arrow.madlib"
+        },
+        {
+          "match": "::",
+          "name": "keyword.operator.double-colon.madlib"
+        },
+        {
+          "match": "(data)\\s*([A-Z]+[A-Za-z0-9]*)\\s*=\\s*(.*)",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" },
+            "2": { "name": "storage.type.madlib" },
+            "3": {
+              "patterns": [
+                {
+                  "name": "constant.other.madlib",
+                  "match": "[A-Z]+[A-Za-z0-9]*"
+                },
+                {
+                  "name": "keyword.operator.pipe.madlib",
+                  "match": "\\|"
+                }
+              ]
+            }
+          },
+          "patterns": [
+            {
+              "match": "([A-Z]+[A-Za-z0-9]*)",
+              "captures": {
+                "1": { "name": "constant.other.madlib" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "where": {
+      "patterns": [
+        {
+          "match": "(where)\\s*\\((.*)\\)\\s*",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" },
+            "2": { "patterns": [{ "include": "#constants" }] }
+          }
+        },
+        {
+          "match": "\\s*(is)\\s*(.*).*",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" },
+            "2": {
+              "patterns": [
+                { "include": "#constants" },
+                {
+                  "match": "([A-Z]+[A-Za-z0-9]*)",
+                  "captures": {
+                    "1": { "name": "constant.other.madlib" }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "begin": "//",
+          "end": "^\\1$\\n",
+          "name": "comment.line.double-slash.madlib"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.mad"
+}
