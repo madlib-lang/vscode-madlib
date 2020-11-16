@@ -1,26 +1,38 @@
 {
-    "name": "madlib",
-    "displayName": "Madlib",
-    "description": "",
-    "version": "0.0.1",
-    "publisher": "open-sorcerers",
-    "engines": {
-        "vscode": "^1.51.0"
-    },
-    "categories": [
-        "Programming Languages"
+  "name": "madlib",
+  "displayName": "Madlib",
+  "description": "",
+  "version": "0.0.2",
+  "publisher": "open-sorcerers",
+  "repository": {
+    "url": "https://github.com/open-sorcerers/vscode-madlib"
+  },
+  "engines": {
+    "vscode": "^1.51.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "madlib",
+        "aliases": [
+          "Madlib",
+          "madlib"
+        ],
+        "extensions": [
+          ".mad"
+        ],
+        "configuration": "./language-configuration.json"
+      }
     ],
-    "contributes": {
-        "languages": [{
-            "id": "madlib",
-            "aliases": ["Madlib", "madlib"],
-            "extensions": [".mad"],
-            "configuration": "./language-configuration.json"
-        }],
-        "grammars": [{
-            "language": "madlib",
-            "scopeName": "source.mad",
-            "path": "./syntaxes/madlib.tmLanguage.json"
-        }]
-    }
+    "grammars": [
+      {
+        "language": "madlib",
+        "scopeName": "source.mad",
+        "path": "./syntaxes/madlib.tmLanguage.json"
+      }
+    ]
+  }
 }

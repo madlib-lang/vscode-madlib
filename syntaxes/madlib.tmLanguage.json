@@ -15,13 +15,22 @@
       "include": "#constants"
     },
     {
-      "include": "#functions"
+      "include": "#function-defs"
     },
     {
       "include": "#comments"
     },
     {
       "include": "#types"
+    },
+    {
+      "include": "#access"
+    },
+    {
+      "include": "#variable-decls"
+    },
+    {
+      "include": "#function-calls"
     }
   ],
   "repository": {
@@ -29,7 +38,7 @@
       "patterns": [
         {
           "name": "keyword.control.madlib",
-          "match": "\\b(if|else|where|is)\\b"
+          "match": "\\b(if|else|where|is|import|export)\\b"
         }
       ]
     },
@@ -56,12 +65,47 @@
         }
       ]
     },
-    "functions": {
+    "variable-decls": {
       "patterns": [
-        { "include": "#types" },
-        { "include": "#keywords" },
         {
-          "match": "([a-zA-Z]+)[ ]*=[ ]*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s.*",
+          "match": "([a-zA-Z]+)[ ]*=(.*)",
+          "captures": {
+            "1": { "name": "variable.other.constant.madlib" },
+            "2": {
+              "patterns": [
+                {
+                  "include": "#function-calls"
+                },
+                {
+                  "include": "#constants"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "function-calls": {
+      "patterns": [
+        {
+          "match": "([a-zA-Z]+[a-zA-Z0-9_]*)\\((.*)\\)",
+          "captures": {
+            "1": { "name": "entity.name.function.madlib" },
+            "2": {
+              "patterns": [
+                { "include": "#constants" },
+                { "include": "#access" },
+                { "include": "#function-calls" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "function-defs": {
+      "patterns": [
+        {
+          "match": "([a-zA-Z]+)[ ]*=[ ]*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s(.*)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": {
@@ -73,7 +117,8 @@
                 }
               ]
             },
-            "3": { "name": "keyword.operator.double-colon.madlib" }
+            "3": { "name": "keyword.operator.double-colon.madlib" },
+            "4": { "patterns":[{ "include": "#function-calls"},  { "include": "#access"}, { "include": "#constants"}] }
           }
         },
         {
@@ -103,7 +148,7 @@
           "name": "keyword.operator.double-colon.madlib"
         },
         {
-          "match": "(data)\\s*([A-Z]+[A-Za-z0-9]*)\\s*=\\s*(.*)",
+          "match": "(data)\\s*([A-Z]+[A-Za-z0-9]*)\\s*.*\\s*=\\s*(.*)",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
             "2": { "name": "storage.type.madlib" },
@@ -150,11 +195,22 @@
                 {
                   "match": "([A-Z]+[A-Za-z0-9]*)",
                   "captures": {
-                    "1": { "name": "constant.other.madlib" }
+                    "1": { "name": "storage.type.madlib" }
                   }
                 }
               ]
             }
+          }
+        }
+      ]
+    },
+    "access": {
+      "patterns": [
+        {
+          "match": "([a-zA-Z]+[A-Za-z0-9]*)\\.(\\w+)",
+          "captures": {
+            "1": { "name": "variable.other.constant.madlib" },
+            "2": { "patterns": [{"match": "[A-Z]+[A-Za-z0-9]*", "name": "storage.type.madlib"}] }
           }
         }
       ]
