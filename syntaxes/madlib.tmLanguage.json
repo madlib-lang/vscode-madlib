@@ -88,25 +88,25 @@
     "function-calls": {
       "patterns": [
         {
-          "match": "([a-zA-Z]+[a-zA-Z0-9_]*)\\((.*)\\)",
+          "match": "([a-zA-Z]+[a-zA-Z0-9]*)\\((.*)\\)",
           "captures": {
             "1": {
               "patterns": [
+                { "match": "[a-z]+[A-Za-z0-9]*", "name": "entity.name.function.madlib" },
                 {
                   "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b",
                   "captures": {
                     "1": { "name": "constant.other.madlib" }
                   }
-                },
-                { "name": "entity.name.function.madlib" }
+                }
               ]
             },
             "2": {
               "patterns": [
+                { "include": "#function-calls" },
                 { "include": "#strings" },
                 { "include": "#constants" },
                 { "include": "#access" },
-                { "include": "#function-calls" },
                 { "include": "#where" }
               ]
             }
@@ -194,6 +194,14 @@
           "name": "keyword.operator.double-colon.madlib"
         },
         {
+          "match": "=\\s*([A-Z]+[a-zA-Z0-9]*)",
+          "captures": { "1": { "name": "constant.other.madlib" } }
+        },
+        {
+          "match": "\\|\\s*([A-Z]+[a-zA-Z0-9]*)",
+          "captures": { "1": { "name": "constant.other.madlib" } }
+        },
+        {
           "match": "(data)\\s*([A-Z]+[A-Za-z0-9]*)\\s*.*\\s*=\\s*(.*)",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
@@ -239,15 +247,15 @@
     },
     "if": {
       "patterns": [
-        {"match": "if", "name": "keyword.control.madlib" },
-        {"match": "else", "name": "keyword.control.madlib" }
+        { "match": "if", "name": "keyword.control.madlib" },
+        { "match": "else", "name": "keyword.control.madlib" }
       ]
     },
     "where": {
       "patterns": [
         {
           "match": "where",
-          "name": "keyword.control.madlib" 
+          "name": "keyword.control.madlib"
         },
         {
           "match": "(where)\\s*\\((.*)\\)\\s*",
@@ -257,14 +265,33 @@
           }
         },
         {
-          "match": "\\s*(is)\\s*(.*).*",
+          "match": "\\s*(is)\\s*(.*)",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
             "2": {
               "patterns": [
+                {
+                  "match": "([a-z]+[a-zA-Z0-9]*)\\((.*)\\)",
+                  "captures": {
+                    "1": {
+                      "name": "entity.name.function.madlib"
+                    },
+                    "2": {
+                      "patterns": [
+                        {
+                          "include": "#access"
+                        },
+                        { "include": "#where" },
+                        { "include": "#strings" },
+                        { "include": "#if" },
+                        { "include": "#function-defs" }
+                      ]
+                    }
+                  }
+                },
+                { "include": "#function-calls" },
                 { "include": "#constants" },
                 { "include": "#access" },
-                { "include": "#function-calls" },
                 {
                   "begin": "[A-Z]+",
                   "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b",
