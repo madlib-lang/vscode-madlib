@@ -31,7 +31,11 @@
       {
         "language": "madlib",
         "scopeName": "source.mad",
-        "path": "./syntaxes/madlib.tmLanguage.json"
+        "path": "./syntaxes/madlib.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.js": "javascript",
+          "meta.embedded.block.javascript": "javascript"
+        }
       }
     ]
   }
