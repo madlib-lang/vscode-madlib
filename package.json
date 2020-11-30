@@ -2,7 +2,7 @@
   "name": "madlib",
   "displayName": "Madlib",
   "description": "",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "open-sorcerers",
   "repository": {
     "url": "https://github.com/open-sorcerers/vscode-madlib"
