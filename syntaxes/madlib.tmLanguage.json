@@ -76,12 +76,13 @@
             "1": { "name": "variable.other.constant.madlib" },
             "2": {
               "patterns": [
-                {
-                  "include": "#function-calls"
-                },
-                {
-                  "include": "#constants"
-                },
+                { "include": "#function-calls" },
+                { "include": "#function-defs" },
+                { "include": "#strings" },
+                { "include": "#constants" },
+                { "include": "#types" },
+                { "include": "#access" },
+                { "include": "#where" },
                 { "include": "#jscode" }
               ]
             }
@@ -111,6 +112,7 @@
                 { "include": "#function-defs" },
                 { "include": "#strings" },
                 { "include": "#constants" },
+                { "include": "#types" },
                 { "include": "#access" },
                 { "include": "#where" },
                 { "include": "#jscode" }
@@ -195,6 +197,18 @@
           "name": "keyword.operator.arrow.madlib"
         },
         {
+          "match": ":",
+          "name": "keyword.operator.arrow.madlib"
+        },
+        {
+          "match": "<",
+          "name": "keyword.operator.arrow.madlib"
+        },
+        {
+          "match": ">",
+          "name": "keyword.operator.arrow.madlib"
+        },
+        {
           "match": "\\|>",
           "name": "keyword.operator.arrow.madlib"
         },
@@ -211,12 +225,13 @@
           "captures": { "1": { "name": "constant.other.madlib" } }
         },
         {
-          "match": "(data)\\s*([A-Z]+[A-Za-z0-9]*)\\s*.*\\s*=\\s*(.*)",
+          "match": "(data|alias)\\s*([A-Z]+[A-Za-z0-9]*)\\s*.*\\s*=\\s*(.*)",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
             "2": { "name": "storage.type.madlib" },
             "3": {
               "patterns": [
+                { "include": "#types" },
                 {
                   "name": "constant.other.madlib",
                   "match": "[A-Z]+[A-Za-z0-9]*"
@@ -270,7 +285,14 @@
           "match": "(where)\\s*\\((.*)\\)\\s*",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
-            "2": { "patterns": [{ "include": "#constants" }] }
+            "2": { "patterns": [
+              { "include": "#constants" },
+              { "include": "#types" },
+              { "include": "#function-calls" },
+              { "include": "#strings" },
+              { "include": "#if" },
+              { "include": "#where" }
+              ] }
           }
         },
         {
@@ -293,7 +315,9 @@
                         { "include": "#where" },
                         { "include": "#strings" },
                         { "include": "#if" },
-                        { "include": "#function-defs" }
+                        { "include": "#function-defs" },
+                        { "include": "#function-calls" },
+                        { "include": "#types" }
                       ]
                     }
                   }
@@ -301,6 +325,9 @@
                 { "include": "#function-calls" },
                 { "include": "#constants" },
                 { "include": "#access" },
+                { "include": "#types" },
+                { "include": "#if" },
+                { "include": "#strings" },
                 {
                   "begin": "[A-Z]+",
                   "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b",
@@ -316,6 +343,19 @@
     },
     "access": {
       "patterns": [
+        {
+          "match": "([.*].*)",
+          "patterns": [
+            { "include": "#function-calls" },
+            { "include": "#function-defs" },
+            { "include": "#strings" },
+            { "include": "#constants" },
+            { "include": "#types" },
+            { "include": "#access" },
+            { "include": "#where" },
+            { "include": "#jscode" }
+          ]
+        },
         {
           "match": "([A-Z]+[A-Za-z0-9]*)\\.([a-z]+[a-zA-Z0-9]*\\(?.*\\)?)",
           "captures": {
@@ -382,11 +422,27 @@
       ]
     },
     "jscode": {
-      "begin": "(.*)#\\-",
-      "end": "\\-#",
-      "beginCaptures": { "1": { "patterns": [{ "include": "source.mad" }] } },
-      "name": "meta.embedded.block.javascript",
-      "patterns": [{ "include": "source.js" }]
+      "patterns": [
+        {
+          "match": "(.*)#\\-(.*)\\-#(.*)",
+          "captures": {
+            "1": { "patterns": [{ "include": "source.mad" }] },
+            "2": { "patterns": [{ "include": "source.js" }] },
+            "3": { "patterns": [{ "include": "source.mad" }] }
+          },
+          "name": "meta.embedded.block.javascript"
+        },
+        {
+          "begin": "(.*)#\\-",
+          "end": "\\-#(.*)",
+          "beginCaptures": {
+            "1": { "patterns": [{ "include": "source.mad" }] },
+            "2": { "patterns": [{ "include": "source.mad" }] }
+          },
+          "name": "meta.embedded.block.javascript",
+          "patterns": [{ "include": "source.js" }]
+        }
+      ]
     }
   },
   "scopeName": "source.mad"
