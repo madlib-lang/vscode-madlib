@@ -2,14 +2,14 @@
   "name": "madlib",
   "displayName": "Madlib",
   "description": "",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "main": "client/src/index.js",
   "activationEvents": [
     "onLanguage:madlib"
   ],
-  "publisher": "open-sorcerers",
+  "publisher": "madlib-lang",
   "repository": {
-    "url": "https://github.com/open-sorcerers/vscode-madlib"
+    "url": "https://github.com/madlib-lang/vscode-madlib"
   },
   "engines": {
     "vscode": "^1.51.0"
