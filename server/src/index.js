@@ -9,17 +9,20 @@ const {
 } = require("vscode-languageserver");
 const { TextDocument } = require("vscode-languageserver-textdocument");
 const { exec } = require("child_process");
+const { __, pipe, curry, ap, map, pathOr, inc, prop, identity, ifElse, slice } = require("ramda");
 
+const { NodeType } = require("./ast");
+
+const trace = curry((label, x) => {
+  console.log(label, x);
+  return x;
+});
+const box = x => [x];
 const uriToFilepath = uri => uri.substr(7);
 
 // https://microsoft.github.io/language-server-protocol/specifications/specification-current/
 
-// Create a connection for the server. The connection uses Node's IPC as a transport.
-// Also include all preview / proposed LSP features.
 let connection = createConnection(ProposedFeatures.all);
-
-// Create a simple text document manager. The text document manager
-// supports full document sync only
 let documents = new TextDocuments(TextDocument);
 
 const astTable = {};
@@ -36,10 +39,6 @@ connection.onInitialize(params => {
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Full,
-      // Tell the client that the server supports code completion
-      completionProvider: {
-        resolveProvider: false,
-      },
       hoverProvider: true,
     },
   };
@@ -52,8 +51,6 @@ connection.onDidChangeConfiguration(change => {
   documents.all().forEach(validateTextDocument);
 });
 
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
   const filepath = uriToFilepath(change.document._uri);
   exec(`madlib compile --json -i ${filepath}`, (err, ast, stderr) => {
@@ -65,42 +62,142 @@ documents.onDidChangeContent(change => {
   });
 });
 
-/**
- * input:
-{
-  textDocument: { uri: 'file:///Users/a.boeglin/Code/madui/src/Example.mad' },
-  position: { line: 35, character: 18 }
-}
- */
-connection.onHover(input => {
-  const astPath = uriToFilepath(input.textDocument.uri);
-  const ast = astTable[astPath];
-  const foundExp = findExpression(input.position.line + 1, input.position.character + 1, ast.expressions);
-  console.log(input);
-  console.log(foundExp);
+documents.onDidSave(change => {
+  const filepath = uriToFilepath(change.document._uri);
+  exec(`madlib compile --json -i ${filepath}`, (err, ast, stderr) => {
+    const parsed = JSON.parse(ast);
+    Object.keys(parsed).forEach(k => {
+      astTable[k] = parsed[k];
+    });
+    console.log(astTable);
+  });
+});
 
-  if (foundExp) {
-    return {
-      contents: { kind: "markdown", value: `
+const handleHover = pipe(
+  trace("Hover call"),
+  box,
+  ap([
+    pipe(pathOr("-", ["textDocument", "uri"]), uriToFilepath),
+    pipe(pathOr(1, ["position", "line"]), inc),
+    pipe(pathOr(1, ["position", "character"]), inc),
+  ]),
+  ([path, line, col]) =>
+    pipe(
+      prop(__, astTable),
+      prop("expressions"),
+      findExpression(line, col),
+      (x) => {
+        if (x.nodeType === NodeType.Abstraction) {
+          console.log(x.param);
+        }
+        return x;
+      },
+      trace("Found expression"),
+      ifElse(identity, buildHoverResponse(path, line), identity)
+    )(path)
+);
+connection.onHover(handleHover);
+
+const getExpressionName = exp => {
+  switch(exp.nodeType) {
+    case NodeType.AbstractionParameter:
+    case NodeType.Assignment:
+    case NodeType.Variable:
+      return exp.name;
+    case NodeType.NamespaceAccess:
+      return exp.accessor;
+  }
+  return false;
+}
+
+const generateTypeTooltipMarkdown = curry(
+  (exp, astPath, line) => {
+    const name = getExpressionName(exp);
+    const typePrefix = name ? `${name} :: ` : "";
+return `
 \`\`\`madlib
-${foundExp.type}
+${typePrefix}${exp.type}
 \`\`\`
-*Defined in ${astPath} at line ${input.position.line + 1}*
-` },
-    };
+*Defined in ${astPath} at line ${line}*
+`
+});
+
+const buildHoverResponse = curry((path, line, expression) => ({
+  contents: {
+    kind: "markdown",
+    value: generateTypeTooltipMarkdown(expression, path, line),
+  },
+}));
+
+const isInRange = curry((line, col, loc) => {
+  if (line >= loc.start.line && line <= loc.end.line) {
+    if (line === loc.start.line && col < loc.start.col) {
+      return false;
+    } else if (line === loc.end.line && col > loc.end.col) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+});
+
+const findExpression = curry((line, col, expressions) => {
+  if (expressions.length === 0) {
+    return false;
+  }
+
+  const exp = expressions[0];
+
+  if (!isInRange(line, col, exp.loc)) {
+    return findExpression(line, col, slice(1, Infinity, expressions));
+  }
+
+  switch (exp.nodeType) {
+    case NodeType.Application:
+      return (
+        findExpression(line, col, [exp.argument]) ||
+        findExpression(line, col, [exp.abstraction]) ||
+        exp
+      );
+    case NodeType.Abstraction:
+      return findExpression(line, col, [exp.param]) || findExpression(line, col, exp.body) || exp;
+    case NodeType.TypedExpression:
+    case NodeType.Export:
+    case NodeType.Assignment:
+      return findExpression(line, col, [exp.expression]) || exp;
+    case NodeType.FieldAccess:
+      return findExpression(line, col, [exp.record]) || findExpression(line, col, [exp.field]) || exp;
+    case NodeType.If:
+      return (
+        findExpression(line, col, [exp.condition]) ||
+        findExpression(line, col, [exp.truthy]) ||
+        findExpression(line, col, [exp.falsy]) ||
+        exp
+      );
+    case NodeType.TemplateString:
+    case NodeType.TupleConstructor:
+      return findExpression(line, col, exp.expressions) || exp;
+    case NodeType.ListConstructor:
+      return findExpression(line, col, map(prop("expression"), exp.items)) || exp;
+    case NodeType.Record:
+      return findExpression(line, col, map(prop("expression"), exp.fields)) || exp;
+    case NodeType.Where:
+      return findExpression(line, col, [exp.expression]) || findExpression(line, col, map(prop("expression"), exp.isCases)) || exp;
+    case NodeType.Placeholder:
+      return findExpression(line, col, [exp.expression]) || false;
+    case NodeType.Variable:
+    case NodeType.LiteralNumber:
+    case NodeType.LiteralString:
+    case NodeType.LiteralBoolean:
+    case NodeType.LiteralUnit:
+    case NodeType.NamespaceAccess:
+    case NodeType.AbstractionParameter:
+    default:
+      return exp;
   }
 });
 
-const findExpression = (line, col, expressions) => {
-  return expressions.find(exp => {
-    if (line >= exp.loc.start.line && line <= exp.loc.end.line) {
-      return true;
-    }
-    return false;
-  });
-};
-
-connection.onCompletion(async (textDocumentPosition, token) => {
+connection.onCompletion((textDocumentPosition, token) => {
   const document = documents.get(textDocumentPosition.textDocument.uri);
   if (!document) {
     return null;
@@ -115,9 +212,5 @@ connection.onCompletion(async (textDocumentPosition, token) => {
   return doComplete(document, textDocumentPosition.position);
 });
 
-// Make the text document manager listen on the connection
-// for open, change and close text document events
 documents.listen(connection);
-
-// Listen on the connection
 connection.listen();
