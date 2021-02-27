@@ -34,6 +34,9 @@
     },
     {
       "include": "#jscode"
+    },
+    {
+      "include": "#interface"
     }
   ],
   "repository": {
@@ -71,7 +74,7 @@
     "variable-decls": {
       "patterns": [
         {
-          "match": "([a-zA-Z]+)[ ]*=(.*)",
+          "match": "\\s*([a-zA-Z0-9]+)\\s*=\\s(.*)",
           "captures": {
             "1": { "name": "variable.other.constant.madlib" },
             "2": {
@@ -93,7 +96,7 @@
     "function-calls": {
       "patterns": [
         {
-          "match": "([a-zA-Z]+[a-zA-Z0-9]*)\\((.*)",
+          "match": "\\s*([a-zA-Z]+[a-zA-Z0-9]*)\\((.*)",
           "captures": {
             "1": {
               "patterns": [
@@ -108,8 +111,8 @@
             },
             "2": {
               "patterns": [
-                { "include": "#function-calls" },
                 { "include": "#function-defs" },
+                { "include": "#function-calls" },
                 { "include": "#strings" },
                 { "include": "#constants" },
                 { "include": "#types" },
@@ -125,7 +128,7 @@
     "function-defs": {
       "patterns": [
         {
-          "match": "\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s(.*)",
+          "match": "\\s*\\(([a-zA-Z0-9,\\s]+)\\)\\s(=>)\\s*(.*)",
           "captures": {
             "1": {
               "name": "variable.parameter.madlib",
@@ -150,7 +153,7 @@
           }
         },
         {
-          "match": "([a-zA-Z]+)[ ]*=[ ]*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s(.*)",
+          "match": "\\s*([a-zA-Z0-9]+)[ ]*=[ ]*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s(.*)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": {
@@ -175,14 +178,15 @@
           }
         },
         {
-          "match": "([a-zA-Z]+)\\s*(::)\\s(.*)",
+          "match": "\\s*([a-zA-Z]+)\\s*(::)\\s(.*)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": { "name": "keyword.operator.double-colon.madlib" },
             "3": {
               "patterns": [
                 { "name": "storage.type.madlib", "match": "[A-Z]+[A-Za-z0-9]*" },
-                { "name": "keyword.operator.arrow.madlib", "match": "->" }
+                { "name": "keyword.operator.arrow.madlib", "match": "->" },
+                { "name": "keyword.operator.arrow.madlib", "match": "=>" }
               ]
             }
           },
@@ -194,6 +198,10 @@
       "patterns": [
         {
           "match": "->",
+          "name": "keyword.operator.arrow.madlib"
+        },
+        {
+          "match": "\\.\\.\\.",
           "name": "keyword.operator.arrow.madlib"
         },
         {
@@ -282,17 +290,19 @@
           "name": "keyword.control.madlib"
         },
         {
-          "match": "(where)\\s*\\((.*)\\)\\s*",
+          "match": "\\s*(where)\\s*\\((.*)\\)\\s*",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
-            "2": { "patterns": [
-              { "include": "#constants" },
-              { "include": "#types" },
-              { "include": "#function-calls" },
-              { "include": "#strings" },
-              { "include": "#if" },
-              { "include": "#where" }
-              ] }
+            "2": {
+              "patterns": [
+                { "include": "#constants" },
+                { "include": "#types" },
+                { "include": "#function-calls" },
+                { "include": "#strings" },
+                { "include": "#if" },
+                { "include": "#where" }
+              ]
+            }
           }
         },
         {
@@ -301,6 +311,12 @@
             "1": { "name": "keyword.control.madlib" },
             "2": {
               "patterns": [
+                { "include": "#function-calls" },
+                { "include": "#constants" },
+                { "include": "#types" },
+                { "include": "#access" },
+                { "include": "#if" },
+                { "include": "#strings" },
                 {
                   "match": "([a-z]+[a-zA-Z0-9]*)\\((.*)\\)",
                   "captures": {
@@ -309,9 +325,7 @@
                     },
                     "2": {
                       "patterns": [
-                        {
-                          "include": "#access"
-                        },
+                        { "include": "#access" },
                         { "include": "#where" },
                         { "include": "#strings" },
                         { "include": "#if" },
@@ -322,12 +336,6 @@
                     }
                   }
                 },
-                { "include": "#function-calls" },
-                { "include": "#constants" },
-                { "include": "#access" },
-                { "include": "#types" },
-                { "include": "#if" },
-                { "include": "#strings" },
                 {
                   "begin": "[A-Z]+",
                   "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b",
@@ -413,11 +421,46 @@
         }
       ]
     },
+    "interface": {
+      "patterns": [
+        {
+          "match": "(interface|instance)\\s+(.*)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.madlib"
+            },
+            "2": {
+              "patterns": [
+                { "include": "#interface" }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(.*)?\\s(=>)\\s?(.*)?",
+          "captures": {
+            "1": { "patterns": [{ "include": "#interface" }] },
+            "2": { "name": "keyword.control.madlib" },
+            "3": { "patterns": [{ "include": "#interface" }] }
+          }
+        },
+        {
+          "match": "([A-Z]+[A-Za-z0-9]*)\\s\\(?([A-Z]+[A-Za-z0-9]*)?",
+          "captures": {
+            "1": { "name": "storage.type.madlib" },
+            "2": { "name": "constant.other.madlib" }
+          }
+        }
+      ]
+    },
     "comments": {
       "patterns": [
         {
-          "match": "//.*",
-          "name": "comment.line.double-slash.madlib"
+          "match": "(.*)(//.*)",
+          "captures": {
+            "1": { "patterns": [{ "include": "source.mad" }] },
+            "2": { "name": "comment.line.double-slash.madlib" }
+          }
         }
       ]
     },
