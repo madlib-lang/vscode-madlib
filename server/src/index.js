@@ -6,10 +6,27 @@ const {
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
+  DiagnosticSeverity,
 } = require("vscode-languageserver");
 const { TextDocument } = require("vscode-languageserver-textdocument");
 const { exec } = require("child_process");
-const { __, pipe, curry, ap, map, pathOr, inc, prop, identity, ifElse, slice } = require("ramda");
+const {
+  __,
+  pipe,
+  curry,
+  ap,
+  map,
+  pathOr,
+  inc,
+  prop,
+  identity,
+  ifElse,
+  slice,
+  propOr,
+  pathEq,
+  filter,
+  fromPairs,
+} = require("ramda");
 
 const { NodeType } = require("./ast");
 
@@ -19,6 +36,7 @@ const trace = curry((label, x) => {
 });
 const box = x => [x];
 const uriToFilepath = uri => uri.substr(7);
+const filepathToUri = fp => `file://${fp}`;
 
 // https://microsoft.github.io/language-server-protocol/specifications/specification-current/
 
@@ -26,6 +44,7 @@ let connection = createConnection(ProposedFeatures.all);
 let documents = new TextDocuments(TextDocument);
 
 const astTable = {};
+let initialized = false;
 
 connection.onInitialize(params => {
   console.log(params);
@@ -44,34 +63,74 @@ connection.onInitialize(params => {
   };
 });
 
-connection.onInitialized(() => {});
+connection.onInitialized(() => {
+  initialized = true;
+});
 
 connection.onDidChangeConfiguration(change => {
   // Revalidate all open text documents
   documents.all().forEach(validateTextDocument);
 });
 
-documents.onDidChangeContent(change => {
-  const filepath = uriToFilepath(change.document._uri);
-  exec(`madlib compile --json -i ${filepath}`, (err, ast, stderr) => {
-    const parsed = JSON.parse(ast);
-    Object.keys(parsed).forEach(k => {
-      astTable[k] = parsed[k];
-    });
-    console.log(astTable);
-  });
+const locToRange = loc => ({
+  start: {
+    line: loc.start.line - 1,
+    character: loc.start.col - 1,
+  },
+  end: {
+    line: loc.end.line - 1,
+    character: loc.end.col - 1,
+  },
 });
 
-documents.onDidSave(change => {
+const buildDiagnostics = map(
+  map(err => ({
+    range: locToRange(err.loc),
+    severity: DiagnosticSeverity.Error,
+    message: err.message,
+    source: "madlib",
+  }))
+);
+
+const handleDiagnostic = change => {
   const filepath = uriToFilepath(change.document._uri);
-  exec(`madlib compile --json -i ${filepath}`, (err, ast, stderr) => {
+  exec(`madlib compile --json -i ${filepath}`, (e, ast, stderr) => {
     const parsed = JSON.parse(ast);
-    Object.keys(parsed).forEach(k => {
-      astTable[k] = parsed[k];
+    const asts = parsed.asts;
+    Object.keys(asts).forEach(k => {
+      astTable[k] = asts[k];
     });
-    console.log(astTable);
+
+    console.log(parsed.errors);
+
+    const initalKeys = map(path => [path, { path }], [
+      ...Object.keys(astTable),
+      ...map(prop("origin"), parsed.errors),
+    ]);
+
+    const groupedErrors = map(
+      ast => filter(err => err.origin === ast.path, parsed.errors),
+      fromPairs(initalKeys)
+    );
+    // const groupedErrors = groupBy(prop("origin"), parsed.errors);
+    const diagnostics = buildDiagnostics(groupedErrors);
+
+    console.log(diagnostics);
+
+    Object.keys(diagnostics).forEach(path => {
+      if (filepath !== path) {
+        return;
+      }
+
+      const uri = filepathToUri(path);
+      connection.sendDiagnostics({ uri, diagnostics: diagnostics[path] });
+    });
   });
-});
+};
+
+documents.onDidOpen(handleDiagnostic);
+// documents.onDidChangeContent(handleDiagnostic);
+documents.onDidSave(handleDiagnostic);
 
 const handleHover = pipe(
   trace("Hover call"),
@@ -84,9 +143,9 @@ const handleHover = pipe(
   ([path, line, col]) =>
     pipe(
       prop(__, astTable),
-      prop("expressions"),
+      propOr([], "expressions"),
       findExpression(line, col),
-      (x) => {
+      x => {
         if (x.nodeType === NodeType.Abstraction) {
           console.log(x.param);
         }
@@ -96,30 +155,40 @@ const handleHover = pipe(
       ifElse(identity, buildHoverResponse(path, line), identity)
     )(path)
 );
-connection.onHover(handleHover);
+
+connection.onHover(change => (initialized ? handleHover(change) : null));
 
 const getExpressionName = exp => {
-  switch(exp.nodeType) {
+  switch (exp.nodeType) {
     case NodeType.AbstractionParameter:
     case NodeType.Assignment:
     case NodeType.Variable:
       return exp.name;
     case NodeType.NamespaceAccess:
       return exp.accessor;
+    case NodeType.Export:
+      return pathEq(["expression", "nodeType"], NodeType.Assignment, exp)
+        ? exp.expression.name
+        : false;
+    case NodeType.TypedExpression:
+      return pathEq(["expression", "nodeType"], NodeType.Assignment, exp)
+        ? exp.expression.name
+        : pathEq(["expression", "expression", "nodeType"], NodeType.Assignment, exp)
+        ? exp.expression.expression.name
+        : false;
   }
   return false;
-}
+};
 
-const generateTypeTooltipMarkdown = curry(
-  (exp, astPath, line) => {
-    const name = getExpressionName(exp);
-    const typePrefix = name ? `${name} :: ` : "";
-return `
+const generateTypeTooltipMarkdown = curry((exp, astPath, line) => {
+  const name = getExpressionName(exp);
+  const typePrefix = name ? `${name} :: ` : "";
+  return `
 \`\`\`madlib
 ${typePrefix}${exp.type}
 \`\`\`
 *Defined in ${astPath} at line ${line}*
-`
+`;
 });
 
 const buildHoverResponse = curry((path, line, expression) => ({
@@ -166,7 +235,9 @@ const findExpression = curry((line, col, expressions) => {
     case NodeType.Assignment:
       return findExpression(line, col, [exp.expression]) || exp;
     case NodeType.FieldAccess:
-      return findExpression(line, col, [exp.record]) || findExpression(line, col, [exp.field]) || exp;
+      return (
+        findExpression(line, col, [exp.record]) || findExpression(line, col, [exp.field]) || exp
+      );
     case NodeType.If:
       return (
         findExpression(line, col, [exp.condition]) ||
@@ -182,7 +253,11 @@ const findExpression = curry((line, col, expressions) => {
     case NodeType.Record:
       return findExpression(line, col, map(prop("expression"), exp.fields)) || exp;
     case NodeType.Where:
-      return findExpression(line, col, [exp.expression]) || findExpression(line, col, map(prop("expression"), exp.isCases)) || exp;
+      return (
+        findExpression(line, col, [exp.expression]) ||
+        findExpression(line, col, map(prop("expression"), exp.isCases)) ||
+        exp
+      );
     case NodeType.Placeholder:
       return findExpression(line, col, [exp.expression]) || false;
     case NodeType.Variable:

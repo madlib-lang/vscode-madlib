@@ -49,13 +49,47 @@
       ]
     },
     "strings": {
-      "name": "string.quoted.double.madlib",
-      "begin": "\"",
-      "end": "\"",
       "patterns": [
         {
-          "name": "constant.character.escape.madlib",
-          "match": "\\\\."
+          "name": "string.quoted.double.madlib",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.madlib",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.madlib",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.madlib",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.template.madlib",
+          "begin": "`",
+          "end": "`",
+          "patterns": [
+            {
+              "match": "\\$\\{(.*)\\}",
+              "captures": {
+                "1": {
+                  "patterns": [{ "include": "source.mad"}]
+                }
+              }
+            },
+            {
+              "name": "constant.character.escape.madlib",
+              "match": "\\\\."
+            }
+          ]
         }
       ]
     },
@@ -430,9 +464,7 @@
               "name": "keyword.control.madlib"
             },
             "2": {
-              "patterns": [
-                { "include": "#interface" }
-              ]
+              "patterns": [{ "include": "#interface" }]
             }
           }
         },
@@ -461,6 +493,17 @@
             "1": { "patterns": [{ "include": "source.mad" }] },
             "2": { "name": "comment.line.double-slash.madlib" }
           }
+        },
+        {
+          "begin": "(.*)/\\*",
+          "end": "\\*/(.*)",
+          "beginCaptures": {
+            "1": { "patterns": [{ "include": "source.mad" }] }
+          },
+          "endCaptures": {
+            "1": { "patterns": [{ "include": "source.mad" }] }
+          },
+          "name": "comment.line.double-slash.madlib"
         }
       ]
     },

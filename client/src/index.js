@@ -36,8 +36,8 @@ exports.activate = context => {
 
   // Create the language client and start the client.
   client = new LanguageClient(
-    "languageServerExample",
-    "Language Server Example",
+    "MadlibServer",
+    "Madlib Language Server",
     serverOptions,
     clientOptions
   );
