@@ -9,12 +9,14 @@ const {
   DiagnosticSeverity,
 } = require("vscode-languageserver");
 const { TextDocument } = require("vscode-languageserver-textdocument");
-const { exec } = require("child_process");
+const { exec, spawn } = require("child_process");
 const {
   __,
   pipe,
   curry,
   ap,
+  flatten,
+  concat,
   map,
   pathOr,
   inc,
@@ -92,9 +94,28 @@ const buildDiagnostics = map(
   }))
 );
 
+const fixedExec = curry((command, args, callback) => {
+  const data = [];
+  const proc = spawn(command, args);
+  proc.stdout.setEncoding("utf8");
+
+  proc.on("exit", function (exitCode) {
+    console.log("process exited with code " + exitCode);
+  });
+
+  proc.stdout.on("data", function (chunk) {
+    data.push(chunk);
+  });
+
+  proc.stdout.on("end", function () {
+    callback(data.join(""));
+  });
+});
+
 const handleDiagnostic = change => {
   const filepath = uriToFilepath(change.document._uri);
-  exec(`madlib compile --json -i ${filepath}`, (e, ast, stderr) => {
+  // exec(`madlib compile --json -i ${filepath}`, (e, ast, stderr) => {
+  fixedExec(`madlib`, ["compile", "--json", "-i", filepath], ast => {
     const parsed = JSON.parse(ast);
     const asts = parsed.asts;
     Object.keys(asts).forEach(k => {
@@ -143,15 +164,20 @@ const handleHover = pipe(
   ([path, line, col]) =>
     pipe(
       prop(__, astTable),
-      propOr([], "expressions"),
-      findExpression(line, col),
-      x => {
-        if (x.nodeType === NodeType.Abstraction) {
-          console.log(x.param);
-        }
-        return x;
-      },
-      trace("Found expression"),
+      box,
+      ap([
+        propOr([], "expressions"),
+        pipe(
+          propOr([], "instances"),
+          trace("instances"),
+          pipe(map(propOr([], "methods")), flatten, map(propOr([], "exp"))),
+          flatten
+        ),
+        propOr([], "typeDeclarations"),
+      ]),
+      flatten,
+      findNode(line, col),
+      trace("Found node"),
       ifElse(identity, buildHoverResponse(path, line), identity)
     )(path)
 );
@@ -177,7 +203,8 @@ const getExpressionName = exp => {
         ? exp.expression.expression.name
         : false;
   }
-  return false;
+
+  return exp.name || false;
 };
 
 const generateTypeTooltipMarkdown = curry((exp, astPath, line) => {
@@ -185,7 +212,7 @@ const generateTypeTooltipMarkdown = curry((exp, astPath, line) => {
   const typePrefix = name ? `${name} :: ` : "";
   return `
 \`\`\`madlib
-${typePrefix}${exp.type}
+${typePrefix}${exp.type || exp.kind}
 \`\`\`
 *Defined in ${astPath} at line ${line}*
 `;
@@ -210,56 +237,55 @@ const isInRange = curry((line, col, loc) => {
   return false;
 });
 
-const findExpression = curry((line, col, expressions) => {
-  if (expressions.length === 0) {
+const findNode = curry((line, col, nodes) => {
+  if (nodes.length === 0) {
     return false;
   }
 
-  const exp = expressions[0];
+  const node = nodes[0];
 
-  if (!isInRange(line, col, exp.loc)) {
-    return findExpression(line, col, slice(1, Infinity, expressions));
+  if (!isInRange(line, col, node.loc)) {
+    return findNode(line, col, slice(1, Infinity, nodes));
   }
 
-  switch (exp.nodeType) {
+  switch (node.nodeType) {
     case NodeType.Application:
       return (
-        findExpression(line, col, [exp.argument]) ||
-        findExpression(line, col, [exp.abstraction]) ||
-        exp
+        findNode(line, col, [node.argument]) || findNode(line, col, [node.abstraction]) || node
       );
     case NodeType.Abstraction:
-      return findExpression(line, col, [exp.param]) || findExpression(line, col, exp.body) || exp;
+      return findNode(line, col, [node.param]) || findNode(line, col, node.body) || node;
     case NodeType.TypedExpression:
     case NodeType.Export:
     case NodeType.Assignment:
-      return findExpression(line, col, [exp.expression]) || exp;
+      return findNode(line, col, [node.expression]) || node;
     case NodeType.FieldAccess:
-      return (
-        findExpression(line, col, [exp.record]) || findExpression(line, col, [exp.field]) || exp
-      );
+      return findNode(line, col, [node.record]) || findNode(line, col, [node.field]) || node;
     case NodeType.If:
       return (
-        findExpression(line, col, [exp.condition]) ||
-        findExpression(line, col, [exp.truthy]) ||
-        findExpression(line, col, [exp.falsy]) ||
-        exp
+        findNode(line, col, [node.condition]) ||
+        findNode(line, col, [node.truthy]) ||
+        findNode(line, col, [node.falsy]) ||
+        node
       );
     case NodeType.TemplateString:
     case NodeType.TupleConstructor:
-      return findExpression(line, col, exp.expressions) || exp;
+      return findNode(line, col, node.expressions) || node;
     case NodeType.ListConstructor:
-      return findExpression(line, col, map(prop("expression"), exp.items)) || exp;
+      return findNode(line, col, map(prop("expression"), node.items)) || node;
     case NodeType.Record:
-      return findExpression(line, col, map(prop("expression"), exp.fields)) || exp;
+      return findNode(line, col, map(prop("expression"), node.fields)) || node;
     case NodeType.Where:
-      return (
-        findExpression(line, col, [exp.expression]) ||
-        findExpression(line, col, map(prop("expression"), exp.isCases)) ||
-        exp
-      );
+      return findNode(line, col, [node.expression]) || findNode(line, col, node.isCases) || node;
+    case NodeType.Is:
+      return findNode(line, col, [node.pattern]) || findNode(line, col, [node.expression]) || node;
+    case NodeType.Pattern:
+      return node;
     case NodeType.Placeholder:
-      return findExpression(line, col, [exp.expression]) || false;
+      return findNode(line, col, [node.expression]) || false;
+    case NodeType.ADT:
+      return findNode(line, col, node.constructors) || node;
+    case NodeType.Constructor:
     case NodeType.Variable:
     case NodeType.LiteralNumber:
     case NodeType.LiteralString:
@@ -268,7 +294,7 @@ const findExpression = curry((line, col, expressions) => {
     case NodeType.NamespaceAccess:
     case NodeType.AbstractionParameter:
     default:
-      return exp;
+      return node;
   }
 });
 

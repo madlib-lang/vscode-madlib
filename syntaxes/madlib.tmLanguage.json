@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Madlib",
   "patterns": [
+    {"include": "#jscode"},
     {
       "include": "#where"
     },
@@ -31,9 +32,6 @@
     },
     {
       "include": "#function-calls"
-    },
-    {
-      "include": "#jscode"
     },
     {
       "include": "#interface"
@@ -81,7 +79,7 @@
               "match": "\\$\\{(.*)\\}",
               "captures": {
                 "1": {
-                  "patterns": [{ "include": "source.mad"}]
+                  "patterns": [{ "include": "source.mad" }]
                 }
               }
             },
@@ -187,7 +185,7 @@
           }
         },
         {
-          "match": "\\s*([a-zA-Z0-9]+)[ ]*=[ ]*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s(.*)",
+          "match": "\\s*([a-zA-Z0-9]+)[ ]*=\\s*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s(.*)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": {
@@ -267,7 +265,7 @@
           "captures": { "1": { "name": "constant.other.madlib" } }
         },
         {
-          "match": "(data|alias)\\s*([A-Z]+[A-Za-z0-9]*)\\s*.*\\s*=\\s*(.*)",
+          "match": "(type|alias)\\s*([A-Z]+[A-Za-z0-9]*)\\s*.*\\s*=\\s*(.*)",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
             "2": { "name": "storage.type.madlib" },
@@ -295,7 +293,7 @@
           ]
         },
         {
-          "match": "(data)\\s*([A-Z]+[A-Za-z0-9]*).*",
+          "match": "(type)\\s*([A-Z]+[A-Za-z0-9]*).*",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
             "2": { "name": "storage.type.madlib" }
@@ -469,7 +467,7 @@
           }
         },
         {
-          "match": "(.*)?\\s(=>)\\s?(.*)?",
+          "match": "(.*)?\\s*(=>)\\s*(.*)?",
           "captures": {
             "1": { "patterns": [{ "include": "#interface" }] },
             "2": { "name": "keyword.control.madlib" },
@@ -503,32 +501,36 @@
           "endCaptures": {
             "1": { "patterns": [{ "include": "source.mad" }] }
           },
+          "while": ".*",
           "name": "comment.line.double-slash.madlib"
         }
       ]
     },
     "jscode": {
-      "patterns": [
-        {
-          "match": "(.*)#\\-(.*)\\-#(.*)",
-          "captures": {
-            "1": { "patterns": [{ "include": "source.mad" }] },
-            "2": { "patterns": [{ "include": "source.js" }] },
-            "3": { "patterns": [{ "include": "source.mad" }] }
-          },
-          "name": "meta.embedded.block.javascript"
-        },
-        {
-          "begin": "(.*)#\\-",
-          "end": "\\-#(.*)",
-          "beginCaptures": {
-            "1": { "patterns": [{ "include": "source.mad" }] },
-            "2": { "patterns": [{ "include": "source.mad" }] }
-          },
+      "name": "js.block.mad",
+      "begin": "(.*)#\\-(?!\\-#)",
+      "end": "(.*)\\-#",
+      "contentName": "meta.embedded.block.javascript",
+      "endCaptures": {
+        "1": {
           "name": "meta.embedded.block.javascript",
+          "patterns": [
+            {
+              "name": "meta.embedded.block.javascript",
+              "include": "source.js"
+            }
+          ]
+        }
+      },
+      "beginCaptures": {
+        "1": {
+          "patterns": [{ "include": "source.mad" }]
+        },
+        "2": {
           "patterns": [{ "include": "source.js" }]
         }
-      ]
+      },
+          "patterns": [{ "include": "source.js" }]
     }
   },
   "scopeName": "source.mad"

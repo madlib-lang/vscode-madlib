@@ -13,6 +13,8 @@ const NodeType = Object.freeze({
   FieldAccess: "FieldAccess",
   If: "If",
   Where: "Where",
+  Pattern: "Pattern",
+  Is: "Is",
   NamespaceAccess: "NamespaceAccess",
   Placeholder: "Placeholder",
   TemplateString: "TemplateString",
@@ -20,6 +22,8 @@ const NodeType = Object.freeze({
   ListConstructor: "ListConstructor",
   Record: "Record",
   JSExpression: "JSExpression",
+  ADT: "ADT",
+  Constructor: "Constructor",
 });
 
 module.exports = {
