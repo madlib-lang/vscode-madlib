@@ -1,15 +1,13 @@
 const {
   CompletionList,
   createConnection,
-  Diagnostic,
-  InitializeParams,
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
   DiagnosticSeverity,
 } = require("vscode-languageserver");
 const { TextDocument } = require("vscode-languageserver-textdocument");
-const { exec, spawn } = require("child_process");
+const { spawn } = require("child_process");
 const {
   __,
   pipe,

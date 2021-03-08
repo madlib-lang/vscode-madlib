@@ -2,7 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Madlib",
   "patterns": [
-    {"include": "#jscode"},
+    { "include": "#jscode" },
+    { "include": "#jsx" },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#comments"
+    },
     {
       "include": "#where"
     },
@@ -10,16 +17,10 @@
       "include": "#keywords"
     },
     {
-      "include": "#strings"
-    },
-    {
       "include": "#constants"
     },
     {
       "include": "#function-defs"
-    },
-    {
-      "include": "#comments"
     },
     {
       "include": "#types"
@@ -46,43 +47,60 @@
         }
       ]
     },
+    "template-interpolation": {
+      "patterns": [
+        {
+          "match": "\\$\\{([^`]*)\\}??",
+          "captures": {
+            "1": {
+              "patterns": [{ "include": "source.mad" }]
+            }
+          }
+        }
+      ]
+    },
     "strings": {
       "patterns": [
         {
-          "name": "string.quoted.double.madlib",
-          "begin": "\"",
-          "end": "\"",
-          "patterns": [
-            {
-              "name": "constant.character.escape.madlib",
-              "match": "\\\\."
+          "match": "\"(.*)\"",
+          "captures": {
+            "1": {
+              "patterns": [
+                {
+                  "name": "constant.character.escape.madlib",
+                  "match": "\\\\."
+                },
+                {
+                  "match": ".*",
+                  "name": "string.quoted.double.madlib"
+                }
+              ]
             }
-          ]
+          }
         },
         {
-          "name": "string.quoted.single.madlib",
-          "begin": "'",
-          "end": "'",
-          "patterns": [
-            {
-              "name": "constant.character.escape.madlib",
-              "match": "\\\\."
+          "match": "'(.*)'",
+          "captures": {
+            "1": {
+              "patterns": [
+                {
+                  "name": "constant.character.escape.madlib",
+                  "match": "\\\\."
+                },
+                {
+                  "match": ".*",
+                  "name": "string.quoted.single.madlib"
+                }
+              ]
             }
-          ]
+          }
         },
         {
-          "name": "string.template.madlib",
+          "contentName": "string.template.madlib",
           "begin": "`",
           "end": "`",
           "patterns": [
-            {
-              "match": "\\$\\{(.*)\\}",
-              "captures": {
-                "1": {
-                  "patterns": [{ "include": "source.mad" }]
-                }
-              }
-            },
+            { "include": "#template-interpolation" },
             {
               "name": "constant.character.escape.madlib",
               "match": "\\\\."
@@ -106,21 +124,9 @@
     "variable-decls": {
       "patterns": [
         {
-          "match": "\\s*([a-zA-Z0-9]+)\\s*=\\s(.*)",
+          "match": "\\s*([a-zA-Z0-9]+)\\s*=",
           "captures": {
-            "1": { "name": "variable.other.constant.madlib" },
-            "2": {
-              "patterns": [
-                { "include": "#function-calls" },
-                { "include": "#function-defs" },
-                { "include": "#strings" },
-                { "include": "#constants" },
-                { "include": "#types" },
-                { "include": "#access" },
-                { "include": "#where" },
-                { "include": "#jscode" }
-              ]
-            }
+            "1": { "name": "variable.other.constant.madlib" }
           }
         }
       ]
@@ -128,7 +134,7 @@
     "function-calls": {
       "patterns": [
         {
-          "match": "\\s*([a-zA-Z]+[a-zA-Z0-9]*)\\((.*)",
+          "match": "\\s*([a-zA-Z]+[a-zA-Z0-9]*)\\(",
           "captures": {
             "1": {
               "patterns": [
@@ -140,18 +146,6 @@
                   }
                 }
               ]
-            },
-            "2": {
-              "patterns": [
-                { "include": "#function-defs" },
-                { "include": "#function-calls" },
-                { "include": "#strings" },
-                { "include": "#constants" },
-                { "include": "#types" },
-                { "include": "#access" },
-                { "include": "#where" },
-                { "include": "#jscode" }
-              ]
             }
           }
         }
@@ -160,7 +154,7 @@
     "function-defs": {
       "patterns": [
         {
-          "match": "\\s*\\(([a-zA-Z0-9,\\s]+)\\)\\s(=>)\\s*(.*)",
+          "match": "\\s*\\(([a-zA-Z0-9_,\\s]+)\\)\\s(=>)\\s*(.*)",
           "captures": {
             "1": {
               "name": "variable.parameter.madlib",
@@ -175,17 +169,19 @@
             "3": {
               "patterns": [
                 { "include": "#where" },
+                { "include": "#strings" },
                 { "include": "#function-calls" },
                 { "include": "#function-defs" },
                 { "include": "#access" },
                 { "include": "#constants" },
-                { "include": "#jscode" }
+                { "include": "#jscode" },
+                { "include": "#jsx" }
               ]
             }
           }
         },
         {
-          "match": "\\s*([a-zA-Z0-9]+)[ ]*=\\s*\\(([a-zA-Z,\\s]+)\\)\\s(=>)\\s(.*)",
+          "match": "\\s*([a-zA-Z0-9_]+)[ ]*=\\s*\\(([a-zA-Z_,\\s]+)\\)\\s(=>)\\s(.*)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": {
@@ -201,16 +197,18 @@
             "4": {
               "patterns": [
                 { "include": "#where" },
+                { "include": "#strings" },
                 { "include": "#function-calls" },
                 { "include": "#access" },
                 { "include": "#constants" },
-                { "include": "#jscode" }
+                { "include": "#jscode" },
+                { "include": "#jsx" }
               ]
             }
           }
         },
         {
-          "match": "\\s*([a-zA-Z]+)\\s*(::)\\s(.*)",
+          "match": "\\s*([a-zA-Z0-9]+)\\s*(::)\\s(.*)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": { "name": "keyword.operator.double-colon.madlib" },
@@ -309,12 +307,6 @@
         }
       ]
     },
-    "if": {
-      "patterns": [
-        { "match": "if", "name": "keyword.control.madlib" },
-        { "match": "else", "name": "keyword.control.madlib" }
-      ]
-    },
     "where": {
       "patterns": [
         {
@@ -331,7 +323,7 @@
                 { "include": "#types" },
                 { "include": "#function-calls" },
                 { "include": "#strings" },
-                { "include": "#if" },
+                { "include": "#keywords" },
                 { "include": "#where" }
               ]
             }
@@ -347,7 +339,7 @@
                 { "include": "#constants" },
                 { "include": "#types" },
                 { "include": "#access" },
-                { "include": "#if" },
+                { "include": "#keywords" },
                 { "include": "#strings" },
                 {
                   "match": "([a-z]+[a-zA-Z0-9]*)\\((.*)\\)",
@@ -360,7 +352,7 @@
                         { "include": "#access" },
                         { "include": "#where" },
                         { "include": "#strings" },
-                        { "include": "#if" },
+                        { "include": "#keywords" },
                         { "include": "#function-defs" },
                         { "include": "#function-calls" },
                         { "include": "#types" }
@@ -404,7 +396,7 @@
               "patterns": [
                 { "include": "#where" },
                 { "include": "#strings" },
-                { "include": "#if" },
+                { "include": "#keywords" },
                 { "include": "#types" },
                 { "include": "#function-calls" },
                 { "include": "#function-defs" },
@@ -432,7 +424,7 @@
                         },
                         { "include": "#where" },
                         { "include": "#strings" },
-                        { "include": "#if" },
+                        { "include": "#keywords" },
                         { "include": "#function-defs" }
                       ]
                     }
@@ -486,23 +478,21 @@
     "comments": {
       "patterns": [
         {
-          "match": "(.*)(//.*)",
-          "captures": {
-            "1": { "patterns": [{ "include": "source.mad" }] },
-            "2": { "name": "comment.line.double-slash.madlib" }
-          }
+          "match": "(//.*)",
+          "name": "comment.line.double-slash.madlib"
         },
         {
-          "begin": "(.*)/\\*",
-          "end": "\\*/(.*)",
-          "beginCaptures": {
-            "1": { "patterns": [{ "include": "source.mad" }] }
-          },
-          "endCaptures": {
-            "1": { "patterns": [{ "include": "source.mad" }] }
-          },
-          "while": ".*",
-          "name": "comment.line.double-slash.madlib"
+          "contentName": "comment.block.js",
+          "begin": "\\s*+((/\\*))",
+          "end": "(\\s*(\\*/))",
+          "captures": {
+            "1": {
+              "name": "comment.block.js"
+            },
+            "2": {
+              "name": "punctuation.definition.comment.js"
+            }
+          }
         }
       ]
     },
@@ -530,7 +520,285 @@
           "patterns": [{ "include": "source.js" }]
         }
       },
-          "patterns": [{ "include": "source.js" }]
+      "patterns": [{ "include": "source.js" }]
+    },
+    "jsx": {
+      "comment": "Avoid < operator expressions as best we can using Zertosh's regex",
+      "patterns": [
+        {
+          "begin": "(?<=\\(|{|\\[|,|&&|\\|\\||\\?|:|=|=>|\\Wreturn|^return|\\Wyield|^yield|\\Wdefault|\\Wvoid|^void|^)\\s*+(?=<[$_\\p{L}]|<\\s*>)",
+          "end": "(?=.)",
+          "applyEndPatternLast": 1,
+          "patterns": [
+            {
+              "include": "#jsx-tag-element-name"
+            }
+          ]
+        }
+      ]
+    },
+    "jsx-tag-element-name": {
+      "patterns": [
+        {
+          "comment": "JSX Fragment",
+          "name": "meta.tag.jsx",
+          "contentName": "JSXAttrs",
+          "begin": "\\s*+(<)\\s*(?=>)",
+          "end": "(?<=</)(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.jsx"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.jsx"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#jsx-tag-termination"
+            }
+          ]
+        },
+        {
+          "comment": "Tags that end > are trapped in #jsx-tag-termination",
+          "name": "meta.tag.jsx",
+          "contentName": "JSXAttrs",
+          "begin": "\\s*+(<)((\\p{Ll}[\\p{Ll}0-9]*)|((?:[$_\\p{L}\\p{Nl}][$_\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}-]*?:)?+(?:[$_\\p{L}\\p{Nl}](?:[$_\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}\\.-](?<!\\.\\.))*+)+))(?=[ />\\s])(?![:])(?<!\\.|:)",
+          "end": "\\s*(?<=</)((\\4)|\\2)(>)|(/>)|((?<=</)[\\S ]*?)>",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.jsx"
+            },
+            "2": {
+              "name": "entity.name.tag.open.jsx"
+            },
+            "4": {
+              "name": "support.class.component.open.jsx"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "entity.name.tag.close.jsx"
+            },
+            "2": {
+              "name": "support.class.component.close.jsx"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.jsx"
+            },
+            "4": {
+              "name": "punctuation.definition.tag.jsx"
+            },
+            "5": {
+              "name": "invalid.illegal.termination.jsx"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#jsx-tag-termination"
+            },
+            {
+              "include": "#jsx-tag-attributes"
+            }
+          ]
+        }
+      ]
+    },
+    "jsx-tag-termination": {
+      "patterns": [
+        {
+          "comment": "uses non consuming search for </ in </tag>",
+          "contentName": "JSXNested",
+          "begin": "(>)",
+          "end": "(</)",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.tag.jsx"
+            },
+            "1": {
+              "name": "JSXStartTagEnd"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.tag.jsx"
+            },
+            "1": {
+              "name": "JSXEndTagStart"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#jsx-evaluated-code"
+            },
+            {
+              "include": "#jsx-entities"
+            },
+            {
+              "include": "#jsx-tag-element-name"
+            }
+          ]
+        }
+      ]
+    },
+    "jsx-tag-attributes": {
+      "patterns": [
+        {
+          "include": "#jsx-attribute-name"
+        },
+        {
+          "include": "#jsx-assignment"
+        },
+        {
+          "include": "#jsx-string-double-quoted"
+        },
+        {
+          "include": "#jsx-string-single-quoted"
+        },
+        {
+          "include": "#jsx-evaluated-code"
+        },
+        {
+          "include": "#jsx-tag-element-name"
+        },
+        {
+          "include": "#comments"
+        }
+      ]
+    },
+    "jsx-spread-attribute": {
+      "patterns": [
+        {
+          "comment": "Spread attribute { ... AssignmentExpression }",
+          "match": "(?<!\\.)\\.\\.\\.",
+          "name": "keyword.operator.spread.jsx"
+        }
+      ]
+    },
+    "jsx-attribute-name": {
+      "patterns": [
+        {
+          "comment": "look for attribute name",
+          "match": "(?<!\\S)([$_\\p{L}](?:[$.\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}-](?<!\\.\\.))*+)(?<!\\.)(?=//|/\\*|=|\\s|>|/>)",
+          "captures": {
+            "0": {
+              "name": "entity.other.attribute-name.jsx"
+            }
+          }
+        }
+      ]
+    },
+    "jsx-assignment": {
+      "patterns": [
+        {
+          "comment": "look for attribute assignment",
+          "name": "keyword.operator.assignment.jsx",
+          "match": "=(?=\\s*(?:'|\"|{|/\\*|<|//|\\n))"
+        }
+      ]
+    },
+    "jsx-string-double-quoted": {
+      "name": "string.quoted.double.js",
+      "begin": "\"",
+      "end": "\"(?<!\\\\\")",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.jsx"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.jsx"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#jsx-entities"
+        }
+      ]
+    },
+    "jsx-string-single-quoted": {
+      "name": "string.quoted.single.js",
+      "begin": "'",
+      "end": "'(?<!\\\\')",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.jsx"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.jsx"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#jsx-entities"
+        }
+      ]
+    },
+    "jsx-evaluated-code": {
+      "patterns": [
+        {
+          "name": "meta.embedded.expression.mad",
+          "contentName": "source.mad",
+          "begin": "{",
+          "end": "}",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.begin.jsx"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.embedded.end.jsx"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#jsx-string-double-quoted"
+            },
+            {
+              "include": "#jsx-string-single-quoted"
+            },
+            {
+              "include": "#jsx-spread-attribute"
+            },
+            {
+              "include": "source.mad"
+            }
+          ]
+        }
+      ]
+    },
+    "jsx-entities": {
+      "patterns": [
+        {
+          "comment": "Embeded HTML entities &blah",
+          "match": "(&)([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+)(;)",
+          "captures": {
+            "0": {
+              "name": "constant.character.entity.jsx"
+            },
+            "1": {
+              "name": "punctuation.definition.entity.jsx"
+            },
+            "2": {
+              "name": "entity.name.tag.html.jsx"
+            },
+            "3": {
+              "name": "punctuation.definition.entity.jsx"
+            }
+          }
+        },
+        {
+          "comment": "Entity with & and invalid name",
+          "match": "&\\s*+;",
+          "name": "invalid.illegal.bad-ampersand.jsx"
+        }
+      ]
     }
   },
   "scopeName": "source.mad"

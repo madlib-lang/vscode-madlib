@@ -2,8 +2,6 @@ const path = require("path");
 
 const {
   LanguageClient,
-  LanguageClientOptions,
-  ServerOptions,
   TransportKind,
 } = require("vscode-languageclient");
 
