@@ -1,13 +1,15 @@
 const {
   CompletionList,
   createConnection,
+  Diagnostic,
+  InitializeParams,
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
   DiagnosticSeverity,
 } = require("vscode-languageserver");
 const { TextDocument } = require("vscode-languageserver-textdocument");
-const { spawn } = require("child_process");
+const { exec, spawn } = require("child_process");
 const {
   __,
   pipe,
@@ -112,7 +114,10 @@ const fixedExec = curry((command, args, callback) => {
 
 const handleDiagnostic = change => {
   const filepath = uriToFilepath(change.document._uri);
-  // exec(`madlib compile --json -i ${filepath}`, (e, ast, stderr) => {
+
+
+  fixedExec(`madlib`, ["--version"], console.log)
+
   fixedExec(`madlib`, ["compile", "--json", "-i", filepath], ast => {
     const parsed = JSON.parse(ast);
     const asts = parsed.asts;
