@@ -193,8 +193,6 @@ const getExpressionName = exp => {
     case NodeType.Assignment:
     case NodeType.Variable:
       return exp.name;
-    case NodeType.NamespaceAccess:
-      return exp.accessor;
     case NodeType.Export:
       return pathEq(["expression", "nodeType"], NodeType.Assignment, exp)
         ? exp.expression.name
@@ -262,7 +260,7 @@ const findNode = curry((line, col, nodes) => {
     case NodeType.Export:
     case NodeType.Assignment:
       return findNode(line, col, [node.expression]) || node;
-    case NodeType.FieldAccess:
+    case NodeType.Access:
       return findNode(line, col, [node.record]) || findNode(line, col, [node.field]) || node;
     case NodeType.If:
       return (
@@ -294,7 +292,6 @@ const findNode = curry((line, col, nodes) => {
     case NodeType.LiteralString:
     case NodeType.LiteralBoolean:
     case NodeType.LiteralUnit:
-    case NodeType.NamespaceAccess:
     case NodeType.AbstractionParameter:
     default:
       return node;
