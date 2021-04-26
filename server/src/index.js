@@ -7,6 +7,7 @@ const {
   TextDocuments,
   TextDocumentSyncKind,
   DiagnosticSeverity,
+  DiagnosticTag,
 } = require("vscode-languageserver");
 const { TextDocument } = require("vscode-languageserver-textdocument");
 const { exec, spawn } = require("child_process");
@@ -31,6 +32,7 @@ const {
 } = require("ramda");
 
 const { NodeType } = require("./ast");
+const { WarningType } = require("./warnings");
 
 const trace = curry((label, x) => {
   console.log(label, x);
@@ -77,7 +79,7 @@ connection.onDidChangeConfiguration(change => {
 const locToRange = loc => ({
   start: {
     line: loc.start.line - 1,
-    character: loc.start.col - 1,
+    character: loc.start.col === 0 ? 0 : loc.start.col - 1,
   },
   end: {
     line: loc.end.line - 1,
@@ -85,12 +87,22 @@ const locToRange = loc => ({
   },
 });
 
-const buildDiagnostics = map(
+const buildErrorDiagnostics = map(
   map(err => ({
     range: locToRange(err.loc),
     severity: DiagnosticSeverity.Error,
     message: err.message,
     source: "madlib",
+  }))
+);
+
+const buildWarningDiagnostics = map(
+  map(warning => ({
+    range: locToRange(warning.loc),
+    severity: DiagnosticSeverity.Warning,
+    message: warning.message,
+    source: "madlib",
+    tags: warning.warningType === WarningType.UNUSED_IMPORT ? [DiagnosticTag.Unnecessary] : []
   }))
 );
 
@@ -115,17 +127,12 @@ const fixedExec = curry((command, args, callback) => {
 const handleDiagnostic = change => {
   const filepath = uriToFilepath(change.document._uri);
 
-
-  fixedExec(`madlib`, ["--version"], console.log)
-
   fixedExec(`madlib`, ["compile", "--json", "-i", filepath], ast => {
     const parsed = JSON.parse(ast);
     const asts = parsed.asts;
     Object.keys(asts).forEach(k => {
       astTable[k] = asts[k];
     });
-
-    console.log(parsed.errors);
 
     const initalKeys = map(path => [path, { path }], [
       ...Object.keys(astTable),
@@ -136,19 +143,20 @@ const handleDiagnostic = change => {
       ast => filter(err => err.origin === ast.path, parsed.errors),
       fromPairs(initalKeys)
     );
-    // const groupedErrors = groupBy(prop("origin"), parsed.errors);
-    const diagnostics = buildDiagnostics(groupedErrors);
 
-    console.log(diagnostics);
+    const groupedWarnings = map(
+      ast => filter(err => err.origin === ast.path, parsed.warnings),
+      fromPairs(initalKeys)
+    );
 
-    Object.keys(diagnostics).forEach(path => {
-      if (filepath !== path) {
-        return;
-      }
+    const errorDiagnostics = buildErrorDiagnostics(groupedErrors);
+    const warningDiagnostics = buildWarningDiagnostics(groupedWarnings);
 
-      const uri = filepathToUri(path);
-      connection.sendDiagnostics({ uri, diagnostics: diagnostics[path] });
-    });
+    const errorsToSend = errorDiagnostics[filepath] || [];
+    const warningsToSend = warningDiagnostics[filepath] || [];
+
+    const uri = filepathToUri(filepath);
+    connection.sendDiagnostics({ uri, diagnostics: [...errorsToSend, ...warningsToSend] });
   });
 };
 

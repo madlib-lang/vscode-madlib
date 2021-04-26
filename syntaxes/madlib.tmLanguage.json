@@ -10,12 +10,12 @@
       "include": "#types"
     },
     {
+      "include": "#strings"
+    },
+    {
       "include": "#comments"
     },
     { "include": "#jscode" },
-    {
-      "include": "#strings"
-    },
     {
       "include": "#where"
     },
@@ -467,10 +467,9 @@
     "comments": {
       "patterns": [
         {
-          "match": "(.*)(//.*)",
+          "match": "(//.*)",
           "captures": {
-            "1": { "patterns": [{ "include": "source.mad" }] },
-            "2": { "name": "comment.line.double-slash.madlib" }
+            "1": { "name": "comment.line.double-slash.madlib" }
           }
         },
         {
