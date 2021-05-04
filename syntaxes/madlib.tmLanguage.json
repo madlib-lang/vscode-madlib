@@ -112,7 +112,7 @@
     "variable-decls": {
       "patterns": [
         {
-          "match": "\\s*([a-zA-Z0-9]+)\\s*=",
+          "match": "\\s*\\b([a-zA-Z0-9]+)\\b\\s*=",
           "captures": {
             "1": { "name": "variable.other.constant.madlib" }
           }
@@ -378,7 +378,7 @@
           ]
         },
         {
-          "match": "([A-Z]+[A-Za-z0-9]*)\\.([a-z]+[a-zA-Z0-9]*\\(?.*\\)?)",
+          "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b\\.([a-z]+[a-zA-Z0-9]*\\(?.*\\)?)",
           "captures": {
             "1": { "name": "variable.other.constant.madlib" },
             "2": {

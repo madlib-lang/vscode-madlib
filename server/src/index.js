@@ -17,7 +17,7 @@ const {
   curry,
   ap,
   flatten,
-  concat,
+  reverse,
   map,
   pathOr,
   inc,
@@ -156,7 +156,7 @@ const handleDiagnostic = change => {
     const warningsToSend = warningDiagnostics[filepath] || [];
 
     const uri = filepathToUri(filepath);
-    connection.sendDiagnostics({ uri, diagnostics: [...errorsToSend, ...warningsToSend] });
+    connection.sendDiagnostics({ uri, diagnostics: [...reverse(errorsToSend), ...warningsToSend] });
   });
 };
 
