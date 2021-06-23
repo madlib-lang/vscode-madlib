@@ -130,6 +130,7 @@ const handleDiagnostic = change => {
   fixedExec(`madlib`, ["compile", "--json", "-i", filepath], ast => {
     const parsed = JSON.parse(ast);
     const asts = parsed.asts;
+
     Object.keys(asts).forEach(k => {
       astTable[k] = asts[k];
     });
@@ -152,11 +153,20 @@ const handleDiagnostic = change => {
     const errorDiagnostics = buildErrorDiagnostics(groupedErrors);
     const warningDiagnostics = buildWarningDiagnostics(groupedWarnings);
 
-    const errorsToSend = errorDiagnostics[filepath] || [];
-    const warningsToSend = warningDiagnostics[filepath] || [];
+    const errorsToSend = errorDiagnostics || {};
+    const warningsToSend = warningDiagnostics || {};
 
-    const uri = filepathToUri(filepath);
-    connection.sendDiagnostics({ uri, diagnostics: [...reverse(errorsToSend), ...warningsToSend] });
+    const filePaths = new Set([
+      ...Object.keys(astTable),
+      ...Object.keys(errorsToSend),
+      ...Object.keys(warningsToSend),
+      filepath
+    ])
+
+    filePaths.forEach(fp => {
+      const uri = filepathToUri(fp);
+      connection.sendDiagnostics({ uri, diagnostics: [...(reverse(errorsToSend[fp] || [])), ...(warningsToSend[fp] || [])] });
+    })
   });
 };
 
