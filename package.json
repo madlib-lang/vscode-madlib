@@ -2,7 +2,7 @@
   "name": "madlib",
   "displayName": "Madlib",
   "description": "",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "main": "client/src/index.js",
   "activationEvents": [
     "onLanguage:madlib"
