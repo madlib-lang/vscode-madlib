@@ -16,11 +16,18 @@
       "include": "#comments"
     },
     { "include": "#jscode" },
+    
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#interface"
+    },
     {
       "include": "#where"
     },
     {
-      "include": "#keywords"
+      "include": "#variable-decls"
     },
     {
       "include": "#constants"
@@ -30,12 +37,6 @@
     },
     {
       "include": "#access"
-    },
-    {
-      "include": "#variable-decls"
-    },
-    {
-      "include": "#interface"
     }
   ],
   "repository": {
@@ -43,7 +44,11 @@
       "patterns": [
         {
           "name": "keyword.control.madlib",
-          "match": "\\s*\\b(if|else|where|is|import|export|from|return)\\b"
+          "match": "\\b(if|else|where|is|import|type|export|from|return|instance)\\b"
+        },
+        {
+          "match": "\\s*(>=|<=|==|!=|<|>|\\?|\\:|=>|\\+|\\*|\\-|\\/(?!/))\\s*",
+          "name": "keyword.control.madlib"
         }
       ]
     },
@@ -112,7 +117,7 @@
     "variable-decls": {
       "patterns": [
         {
-          "match": "\\s*\\b([a-zA-Z0-9]+)\\b\\s*=",
+          "match": "\\s*\\b([a-zA-Z0-9]+)\\b\\s*=(?!=)",
           "captures": {
             "1": { "name": "variable.other.constant.madlib" }
           }
@@ -127,7 +132,7 @@
           "contentName": "source.mad",
           "patterns": [
             {
-              "match": "[,]"
+              "match": "[,.]"
             },
             {
               "include": "source.mad"
@@ -167,7 +172,34 @@
           }
         },
         {
-          "match": "\\s*([a-zA-Z0-9_]+)[ ]*=\\s*\\(([a-zA-Z_,\\s]+)\\)\\s(=>)",
+          "match": "\\(([a-zA-Z0-9_, ]+)\\)\\s+(=>)\\s+(.*)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.madlib",
+              "patterns": [
+                {
+                  "name": "constant.character.escape.madlib",
+                  "match": "\\,"
+                }
+              ]
+            },
+            "2": { "name": "keyword.operator.double-colon.madlib" },
+            "3": { 
+              "patterns": [
+                { "include": "#strings" },
+                { "include": "#function-defs" },
+                { "include": "#function-calls" },
+                { "include": "#access" },
+                { "include": "#constants" },
+                { "include": "#jscode" },
+                { "include": "#jsx" },
+                { "include": "#where" }
+              ]
+             }
+          }
+        },
+        {
+          "match": "\\s*([a-zA-Z0-9_]+)[ ]*=[ ]*\\(([a-zA-Z_, ]+)\\)[ ]*(=>)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": {
@@ -182,19 +214,19 @@
             "3": { "name": "keyword.operator.double-colon.madlib" },
             "4": {
               "patterns": [
-                { "include": "#where" },
                 { "include": "#strings" },
                 { "include": "#function-calls" },
                 { "include": "#access" },
                 { "include": "#constants" },
                 { "include": "#jscode" },
-                { "include": "#jsx" }
+                { "include": "#jsx" },
+                { "include": "#where" }
               ]
-            }
+             }
           }
         },
         {
-          "match": "\\s*([a-zA-Z0-9]+)\\s*(::)\\s(.*)",
+          "match": "([a-zA-Z0-9]+)\\s*(::)([^,]*)",
           "captures": {
             "1": { "name": "entity.name.function.madlib" },
             "2": { "name": "keyword.operator.double-colon.madlib" },
@@ -245,7 +277,7 @@
           "name": "constant.other.madlib"
         },
         {
-          "match": "=\\s*\\b([A-Z]+[a-zA-Z0-9]*)\\b",
+          "match": "=?\\s*\\b([A-Z]+[a-zA-Z0-9]*)\\b",
           "captures": { "1": { "name": "constant.other.madlib" } }
         },
         {
@@ -298,69 +330,43 @@
       ]
     },
     "where": {
-      "patterns": [
-        {
-          "match": "where",
-          "name": "keyword.control.madlib"
-        },
-        {
-          "match": "\\s*(where)\\s*\\((.*)\\)\\s*",
-          "captures": {
-            "1": { "name": "keyword.control.madlib" },
-            "2": {
-              "patterns": [
-                { "include": "#constants" },
-                { "include": "#types" },
-                { "include": "#function-calls" },
-                { "include": "#strings" },
-                { "include": "#keywords" },
-                { "include": "#where" }
-              ]
-            }
-          }
-        },
-        {
-          "match": "\\s*(\\bis\\b)\\s*(.*)",
-          "captures": {
-            "1": { "name": "keyword.control.madlib" },
-            "2": {
-              "patterns": [
-                { "include": "#function-calls" },
-                { "include": "#constants" },
-                { "include": "#types" },
-                { "include": "#access" },
-                { "include": "#keywords" },
-                { "include": "#strings" },
-                {
-                  "match": "([a-z]+[a-zA-Z0-9]*)\\((.*)\\)",
-                  "captures": {
-                    "1": {
-                      "name": "entity.name.function.madlib"
-                    },
-                    "2": {
-                      "patterns": [
-                        { "include": "#access" },
-                        { "include": "#where" },
-                        { "include": "#strings" },
-                        { "include": "#keywords" },
-                        { "include": "#function-defs" },
-                        { "include": "#function-calls" },
-                        { "include": "#types" }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b",
-                  "captures": {
-                    "1": { "name": "constant.other.madlib" }
-                  }
-                }
-              ]
-            }
+      "patterns": [{
+        "match": "(where)\\((.*)\\)[ ]*\\{",
+        "captures": {
+          "2": {
+            "patterns": [
+              { "include": "#function-calls" },
+              { "include": "#function-defs" },
+              { "include": "#strings" },
+              { "include": "#constants" },
+              { "include": "#types" },
+              { "include": "#access" },
+              { "include": "#where" },
+              { "include": "#jscode" },
+              { "include": "#tuples" }
+            ]
           }
         }
-      ]
+      },
+      {
+        "match": "[ ]*\\(?([a-zA-Z0-9_, ]+)\\)?\\s+(\\=\\>)",
+        "captures": {
+          "1": {
+            "name": "variable.parameter.madlib",
+            "patterns": [
+              {
+                "match": "\\b[A-Z]+[a-zA-Z0-9_]*\\b",
+                "name": "variable.other.constant.madlib"
+              },
+              {
+                "name": "constant.character.escape.madlib",
+                "match": "\\,"
+              }
+            ]
+          },
+          "2": { "name": "keyword.operator.double-colon.madlib" }
+        }
+      }]
     },
     "access": {
       "patterns": [
@@ -437,6 +443,23 @@
     "interface": {
       "patterns": [
         {
+          "match": "(interface|instance)\\s+(.*)\\s+(=>)\\s+(.*)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.madlib"
+            },
+            "2": {
+              "patterns": [{ "include": "#interface" }]
+            },
+            "3": {
+              "name": "keyword.control.madlib"
+            },
+            "4": {
+              "patterns": [{ "include": "#interface" }]
+            }
+          }
+        },
+        {
           "match": "(interface|instance)\\s+(.*)",
           "captures": {
             "1": {
@@ -448,7 +471,8 @@
           }
         },
         {
-          "match": "(.*)?\\s*(=>)\\s*(.*)?",
+          "match": "\\s*(=>)\\s*(.*)?",
+          "disabled": 1,
           "captures": {
             "1": { "patterns": [{ "include": "#interface" }] },
             "2": { "name": "keyword.control.madlib" },
@@ -518,7 +542,7 @@
       "comment": "Avoid < operator expressions as best we can using Zertosh's regex",
       "patterns": [
         {
-          "begin": "(?<=\\(|{|\\[|,|&&|\\|\\||\\?|:|=|=>|\\Wreturn|^return|\\Wyield|^yield|\\Wdefault|\\Wvoid|^void|^)\\s*+(?=<[$_\\p{L}]|<\\s*>)",
+          "begin": "(?<=\\(|{|\\[|&&|\\|\\||\\?|:|=|=>|\\Wreturn|^return|^)\\s*+(?=<([^,]|[ ]*|\\{.*\\})+$|<\\s*>)",
           "end": "(?=.)",
           "applyEndPatternLast": 1,
           "patterns": [
