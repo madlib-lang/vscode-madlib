@@ -3,3 +3,6 @@
 .gitignore
 vsc-extension-quickstart.md
 _exampleJS.json
+node_modules
+server/node_modules
+client/node_modules
