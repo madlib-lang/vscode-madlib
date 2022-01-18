@@ -44,7 +44,7 @@
       "patterns": [
         {
           "name": "keyword.control.madlib",
-          "match": "\\b(if|else|where|is|import|type|export|from|return|instance)\\b"
+          "match": "\\b(if|else|where|is|import|type|export|from|return|instance|do)\\b"
         },
         {
           "match": "\\s*(>=|<=|==|!=|<|>|\\?|\\:|=>|\\+|\\*|\\-|\\/(?!/))\\s*",

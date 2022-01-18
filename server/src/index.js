@@ -10,7 +10,7 @@ const {
   DiagnosticTag,
 } = require("vscode-languageserver");
 const { TextDocument } = require("vscode-languageserver-textdocument");
-const { exec, spawn } = require("child_process");
+const { spawn } = require("child_process");
 const {
   __,
   pipe,
@@ -102,7 +102,7 @@ const buildWarningDiagnostics = map(
     severity: DiagnosticSeverity.Warning,
     message: warning.message,
     source: "madlib",
-    tags: warning.warningType === WarningType.UNUSED_IMPORT ? [DiagnosticTag.Unnecessary] : []
+    tags: warning.warningType === WarningType.UNUSED_IMPORT ? [DiagnosticTag.Unnecessary] : [],
   }))
 );
 
@@ -127,46 +127,58 @@ const fixedExec = curry((command, args, callback) => {
 const handleDiagnostic = change => {
   const filepath = uriToFilepath(change.document._uri);
 
-  fixedExec(`madlib`, ["compile", "--json", "-i", filepath], ast => {
-    const parsed = JSON.parse(ast);
-    const asts = parsed.asts;
+  fixedExec(`madlib`, ["compile", "--json", "-i", filepath], jsJson => {
+    fixedExec(`madlib`, ["compile", "--target", "llvm", "--json", "-i", filepath], llvmJson => {
+      const jsParsed = JSON.parse(jsJson);
+      const jsAsts = jsParsed.asts;
+      const llvmParsed = JSON.parse(llvmJson);
+      const llvmAsts = llvmParsed.asts;
 
-    Object.keys(asts).forEach(k => {
-      astTable[k] = asts[k];
+      Object.keys(jsAsts).forEach(k => {
+        if (astTable[k] === undefined) {
+          astTable[k] = {};
+        }
+
+        astTable[k].jsAST = jsAsts[k];
+        astTable[k].llvmAST = llvmAsts[k];
+      });
+
+      const initalKeys = map(
+        path => [path, { path }],
+        [...Object.keys(astTable), ...map(prop("origin"), [...jsParsed.errors, ...llvmParsed.errors])]
+      );
+
+      const groupedErrors = map(
+        ast => filter(err => err.origin === ast.path, [...jsParsed.errors, ...llvmParsed.errors]),
+        fromPairs(initalKeys)
+      );
+
+      const groupedWarnings = map(
+        ast => filter(err => err.origin === ast.path, [...jsParsed.warnings, ...llvmParsed.warnings]),
+        fromPairs(initalKeys)
+      );
+
+      const errorDiagnostics = buildErrorDiagnostics(groupedErrors);
+      const warningDiagnostics = buildWarningDiagnostics(groupedWarnings);
+
+      const errorsToSend = errorDiagnostics || {};
+      const warningsToSend = warningDiagnostics || {};
+
+      const filePaths = new Set([
+        ...Object.keys(astTable),
+        ...Object.keys(errorsToSend),
+        ...Object.keys(warningsToSend),
+        filepath,
+      ]);
+
+      filePaths.forEach(fp => {
+        const uri = filepathToUri(fp);
+        connection.sendDiagnostics({
+          uri,
+          diagnostics: [...reverse(errorsToSend[fp] || []), ...(warningsToSend[fp] || [])],
+        });
+      });
     });
-
-    const initalKeys = map(path => [path, { path }], [
-      ...Object.keys(astTable),
-      ...map(prop("origin"), parsed.errors),
-    ]);
-
-    const groupedErrors = map(
-      ast => filter(err => err.origin === ast.path, parsed.errors),
-      fromPairs(initalKeys)
-    );
-
-    const groupedWarnings = map(
-      ast => filter(err => err.origin === ast.path, parsed.warnings),
-      fromPairs(initalKeys)
-    );
-
-    const errorDiagnostics = buildErrorDiagnostics(groupedErrors);
-    const warningDiagnostics = buildWarningDiagnostics(groupedWarnings);
-
-    const errorsToSend = errorDiagnostics || {};
-    const warningsToSend = warningDiagnostics || {};
-
-    const filePaths = new Set([
-      ...Object.keys(astTable),
-      ...Object.keys(errorsToSend),
-      ...Object.keys(warningsToSend),
-      filepath
-    ])
-
-    filePaths.forEach(fp => {
-      const uri = filepathToUri(fp);
-      connection.sendDiagnostics({ uri, diagnostics: [...(reverse(errorsToSend[fp] || [])), ...(warningsToSend[fp] || [])] });
-    })
   });
 };
 
@@ -174,8 +186,22 @@ documents.onDidOpen(handleDiagnostic);
 // documents.onDidChangeContent(handleDiagnostic);
 documents.onDidSave(handleDiagnostic);
 
-const handleHover = pipe(
-  trace("Hover call"),
+const mergeASTs = (astPair) => ({
+  expressions: [
+    ...(astPair.jsAST ? astPair.jsAST.expressions : []),
+    ...(astPair.llvmAST ? astPair.llvmAST.expressions : []),
+  ],
+  instances: [
+    ...(astPair.jsAST ? astPair.jsAST.instances : []),
+    ...(astPair.llvmAST ? astPair.llvmAST.instances : []),
+  ],
+  typeDeclarations: [
+    ...(astPair.jsAST ? astPair.jsAST.typeDeclarations : []),
+    ...(astPair.llvmAST ? astPair.llvmAST.typeDeclarations : []),
+  ],
+})
+
+const handleHover = (hoverParams) => pipe(
   box,
   ap([
     pipe(pathOr("-", ["textDocument", "uri"]), uriToFilepath),
@@ -185,6 +211,7 @@ const handleHover = pipe(
   ([path, line, col]) =>
     pipe(
       prop(__, astTable),
+      mergeASTs,
       box,
       ap([
         propOr([], "expressions"),
@@ -198,10 +225,9 @@ const handleHover = pipe(
       ]),
       flatten,
       findNode(line, col),
-      trace("Found node"),
       ifElse(identity, buildHoverResponse(path, line), identity)
     )(path)
-);
+)(hoverParams);
 
 connection.onHover(change => (initialized ? handleHover(change) : null));
 
@@ -245,6 +271,10 @@ const buildHoverResponse = curry((path, line, expression) => ({
 }));
 
 const isInRange = curry((line, col, loc) => {
+  if (!loc) {
+    return false;
+  }
+
   if (line >= loc.start.line && line <= loc.end.line) {
     if (line === loc.start.line && col < loc.start.col) {
       return false;
@@ -274,6 +304,8 @@ const findNode = curry((line, col, nodes) => {
       );
     case NodeType.Abstraction:
       return findNode(line, col, [node.param]) || findNode(line, col, node.body) || node;
+    case NodeType.Do:
+      return findNode(line, col, node.exps) || node;
     case NodeType.TypedExpression:
     case NodeType.Export:
     case NodeType.Assignment:

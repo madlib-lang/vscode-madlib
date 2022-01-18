@@ -1,11 +1,22 @@
-const path = require("path");
 
 const {
   LanguageClient,
   TransportKind,
 } = require("vscode-languageclient");
 
+const vscode = require("vscode");
+
+const { execSync } = require("child_process");
+const path = require("path");
+
 let client;
+
+
+
+const escapeShell = function(cmd) {
+  return '"'+cmd.replace(/(["`\\])/g,'\\$1')+'"';
+};
+
 
 exports.activate = context => {
   console.log(context);
@@ -39,6 +50,23 @@ exports.activate = context => {
     serverOptions,
     clientOptions
   );
+
+
+  vscode.languages.registerDocumentFormattingEditProvider('madlib', {
+    provideDocumentFormattingEdits(document) {
+      try {
+        const result = execSync(`madlib format --text ${escapeShell(document.getText())}`, { encoding: "utf-8" });
+  
+        const firstLine = document.lineAt(0);
+        const lastLine = document.lineAt(document.lineCount - 1);
+        const textRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
+        return [vscode.TextEdit.replace(textRange, result)];
+      } catch(e) {
+        console.error(e);
+        return [];
+      }
+    }
+  });
 
   // Start the client. This will also launch the server
   client.start();
