@@ -1,8 +1,4 @@
-
-const {
-  LanguageClient,
-  TransportKind,
-} = require("vscode-languageclient");
+const { LanguageClient, TransportKind } = require("vscode-languageclient");
 
 const vscode = require("vscode");
 
@@ -14,33 +10,23 @@ let client;
 
 
 const escapeShell = function(cmd) {
-  return '"'+cmd.replace(/(["`\\])/g,'\\$1')+'"';
+  return '"'+cmd.replace(/(["\$`\\])/g,'\\$1')+'"';
 };
 
-
-exports.activate = context => {
+exports.activate = (context) => {
   console.log(context);
-  // The server is implemented in node
-  let serverModule = context.asAbsolutePath(path.join("server", "src", "index.js"));
-  // The debug options for the server
-  // --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
-  let debugOptions = { execArgv: ["--nolazy", "--inspect=6009"] };
 
-  // If the extension is launched in debug mode then the debug server options are used
-  // Otherwise the run options are used
+  let options = { command: "madlib", args: ["lsp", "+RTS", "-A50m", "-H500m", "-N3"] }
+
   let serverOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
-    debug: {
-      module: serverModule,
-      transport: TransportKind.ipc,
-      options: debugOptions,
-    },
+    run: options,
+    debug: options,
   };
 
   // Options to control the language client
   let clientOptions = {
     documentSelector: [{ scheme: "file", language: "madlib" }],
-    hoverProvider: true,
+    // hoverProvider: true,
   };
 
   // Create the language client and start the client.
@@ -51,21 +37,26 @@ exports.activate = context => {
     clientOptions
   );
 
-
-  vscode.languages.registerDocumentFormattingEditProvider('madlib', {
+  vscode.languages.registerDocumentFormattingEditProvider("madlib", {
     provideDocumentFormattingEdits(document) {
       try {
-        const result = execSync(`madlib format --text ${escapeShell(document.getText())}`, { encoding: "utf-8" });
-  
+        const result = execSync(
+          `madlib format --text ${escapeShell(document.getText())}`,
+          { encoding: "utf-8" }
+        );
+
         const firstLine = document.lineAt(0);
         const lastLine = document.lineAt(document.lineCount - 1);
-        const textRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
+        const textRange = new vscode.Range(
+          firstLine.range.start,
+          lastLine.range.end
+        );
         return [vscode.TextEdit.replace(textRange, result)];
-      } catch(e) {
+      } catch (e) {
         console.error(e);
         return [];
       }
-    }
+    },
   });
 
   // Start the client. This will also launch the server
