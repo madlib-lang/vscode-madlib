@@ -1,4 +1,4 @@
-const { LanguageClient, TransportKind } = require("vscode-languageclient");
+const { LanguageClient } = require("vscode-languageclient");
 
 const vscode = require("vscode");
 
@@ -42,7 +42,7 @@ exports.activate = (context) => {
       try {
         const result = execSync(
           `madlib format --text ${escapeShell(document.getText())}`,
-          { encoding: "utf-8" }
+          { encoding: "utf-8", cwd: vscode.workspace.rootPath }
         );
 
         const firstLine = document.lineAt(0);
