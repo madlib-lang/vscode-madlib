@@ -62,6 +62,14 @@ exports.activate = (context) => {
 
   // Start the client. This will also launch the server
   client.start();
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("madlib.restartLanguageServer", async () => {
+      await client.stop();
+      client.start();
+      vscode.window.showInformationMessage("Madlib language server restarted.");
+    })
+  );
 };
 
 exports.deactivate = () => {
