@@ -8,7 +8,6 @@ const path = require("path");
 let client;
 
 
-
 const escapeShell = function(cmd) {
   return '"'+cmd.replace(/(["\$`\\])/g,'\\$1')+'"';
 };
@@ -16,7 +15,9 @@ const escapeShell = function(cmd) {
 exports.activate = (context) => {
   console.log(context);
 
-  let options = { command: "madlib", args: ["lsp", "+RTS", "-A50m", "-H500m", "-N3"] }
+  // let options = { command: "madlib", args: ["lsp", "+RTS", "-p"] }
+  // let options = { command: "madlib", args: ["lsp", "+RTS", "-A50m", "-H500m", "-N3"] }
+  let options = { command: "madlib", args: ["lsp"] }
 
   let serverOptions = {
     run: options,
