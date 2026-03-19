@@ -1,11 +1,13 @@
 {
   "name": "madlib",
   "displayName": "Madlib",
-  "description": "",
-  "version": "0.7.0",
+  "description": "Language support for the Madlib programming language",
+  "version": "0.8.0",
   "main": "client/src/index.js",
   "activationEvents": [
-    "onLanguage:madlib"
+    "onLanguage:madlib",
+    "onCommand:madlib.restartLanguageServer",
+    "onCommand:madlib.showOutputChannel"
   ],
   "publisher": "madlib-lang",
   "repository": {
@@ -22,8 +24,36 @@
       {
         "command": "madlib.restartLanguageServer",
         "title": "Madlib: Restart Language Server"
+      },
+      {
+        "command": "madlib.showOutputChannel",
+        "title": "Madlib: Show Language Server Output"
       }
     ],
+    "configuration": {
+      "title": "Madlib",
+      "properties": {
+        "madlib.server.path": {
+          "type": "string",
+          "default": "madlib",
+          "description": "Path to the madlib binary. Defaults to 'madlib' on PATH.",
+          "scope": "machine-overridable"
+        },
+        "madlib.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Trace level for Madlib language server communication. Useful for debugging.",
+          "scope": "window"
+        },
+        "madlib.format.onSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically format Madlib files on save.",
+          "scope": "resource"
+        }
+      }
+    },
     "languages": [
       {
         "id": "madlib",
@@ -45,9 +75,14 @@
         "embeddedLanguages": {
           "source.js": "javascript",
           "meta.embedded.block.javascript": "javascript",
-          "source.jsx": "jsx-tags",
-          "meta.embedded.block.jsx": "jsx-tags"
+          "meta.embedded.js-block.madlib": "javascript"
         }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "madlib",
+        "path": "./snippets/madlib.json"
       }
     ]
   }

@@ -1,107 +1,232 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Madlib",
+  "scopeName": "source.mad",
   "patterns": [
-    {
-      "include": "#function-calls"
-    },
-    { "include": "#jsx" },
-    {
-      "include": "#types"
-    },
-    {
-      "include": "#strings"
-    },
-    {
-      "include": "#comments"
-    },
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#preprocessor" },
     { "include": "#jscode" },
-    
-    {
-      "include": "#keywords"
-    },
-    {
-      "include": "#interface"
-    },
-    {
-      "include": "#where"
-    },
-    {
-      "include": "#variable-decls"
-    },
-    {
-      "include": "#constants"
-    },
-    {
-      "include": "#function-defs"
-    },
-    {
-      "include": "#access"
-    }
+    { "include": "#keywords" },
+    { "include": "#crash-placeholder" },
+    { "include": "#extern" },
+    { "include": "#derive" },
+    { "include": "#test-fn" },
+    { "include": "#interface" },
+    { "include": "#imports" },
+    { "include": "#types" },
+    { "include": "#tuples" },
+    { "include": "#operators" },
+    { "include": "#constants" },
+    { "include": "#function-defs" },
+    { "include": "#function-calls" },
+    { "include": "#where" },
+    { "include": "#access" },
+    { "include": "#jsx" }
   ],
   "repository": {
-    "keywords": {
+
+    "comments": {
       "patterns": [
         {
-          "name": "keyword.control.madlib",
-          "match": "\\b(if|else|where|import|type|export|from|return|instance|derive|do)\\b"
+          "name": "comment.line.double-slash.madlib",
+          "match": "//.*$"
         },
         {
-          "match": "\\s*(>=|<=|==|!=|<|>|\\?|\\:|=>|\\+|\\*|\\-|\\/(?!/))\\s*",
-          "name": "keyword.control.madlib"
+          "name": "comment.block.madlib",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "patterns": [
+            { "match": "@\\w+", "name": "storage.type.class.jsdoc" }
+          ]
         }
       ]
     },
-    "template-interpolation": {
-      "patterns": [
-        {
-          "match": "\\$\\{([^`]*)\\}??",
-          "captures": {
-            "1": {
-              "patterns": [{ "include": "source.mad" }]
-            }
-          }
-        }
-      ]
-    },
+
     "strings": {
       "patterns": [
         {
-          "contentName": "string.quoted.double.madlib",
+          "name": "string.quoted.double.madlib",
           "begin": "\"",
           "end": "\"",
           "patterns": [
-            {
-              "name": "constant.character.escape.madlib",
-              "match": "\\\\."
-            }
+            { "name": "constant.character.escape.madlib", "match": "\\\\." }
           ]
         },
         {
-          "contentName": "string.quoted.single.madlib",
+          "name": "string.quoted.single.madlib",
           "begin": "'",
           "end": "'",
           "patterns": [
-            {
-              "name": "constant.character.escape.madlib",
-              "match": "\\\\."
-            }
+            { "name": "constant.character.escape.madlib", "match": "\\\\." }
           ]
         },
         {
-          "contentName": "string.template.madlib",
+          "name": "string.template.madlib",
           "begin": "`",
           "end": "`",
           "patterns": [
             { "include": "#template-interpolation" },
-            {
-              "name": "constant.character.escape.madlib",
-              "match": "\\\\."
-            }
+            { "name": "constant.character.escape.madlib", "match": "\\\\." }
           ]
         }
       ]
     },
+
+    "template-interpolation": {
+      "patterns": [
+        {
+          "name": "meta.template.expression.madlib",
+          "begin": "\\$\\{",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.definition.template-expression.begin.madlib" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.template-expression.end.madlib" } },
+          "patterns": [{ "include": "source.mad" }]
+        }
+      ]
+    },
+
+    "preprocessor": {
+      "patterns": [
+        {
+          "match": "#(iftarget|elseif|endif)\\b(\\s+\\w+)?",
+          "captures": {
+            "1": { "name": "keyword.preprocessor.madlib" },
+            "2": { "name": "constant.other.madlib" }
+          }
+        }
+      ]
+    },
+
+    "crash-placeholder": {
+      "patterns": [
+        {
+          "match": "\\?\\?\\?",
+          "name": "invalid.illegal.crash-placeholder.madlib"
+        }
+      ]
+    },
+
+    "extern": {
+      "patterns": [
+        {
+          "match": "\\bextern\\b",
+          "name": "keyword.other.extern.madlib"
+        }
+      ]
+    },
+
+    "derive": {
+      "patterns": [
+        {
+          "match": "\\b(derive)\\s+([A-Z][a-zA-Z0-9]*)",
+          "captures": {
+            "1": { "name": "keyword.other.derive.madlib" },
+            "2": { "name": "storage.type.madlib" }
+          }
+        }
+      ]
+    },
+
+    "test-fn": {
+      "patterns": [
+        {
+          "match": "\\b(test)(?=\\s*\\()",
+          "captures": {
+            "1": { "name": "keyword.other.test.madlib" }
+          }
+        }
+      ]
+    },
+
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.madlib",
+          "match": "\\b(if|else|where|import|type|alias|export|from|return|instance|do)\\b"
+        }
+      ]
+    },
+
+    "imports": {
+      "patterns": [
+        {
+          "comment": "import type { Foo } from 'Module'",
+          "match": "\\b(import)\\s+(type)\\s+\\{([^}]*)\\}\\s+(from)\\s+(\"[^\"]*\"|'[^']*')",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" },
+            "2": { "name": "keyword.control.madlib" },
+            "3": {
+              "patterns": [
+                { "match": "\\b[A-Z][a-zA-Z0-9]*\\b", "name": "storage.type.madlib" },
+                { "match": "\\b[a-z][a-zA-Z0-9]*\\b", "name": "entity.name.function.madlib" }
+              ]
+            },
+            "4": { "name": "keyword.control.madlib" },
+            "5": { "name": "string.quoted.madlib" }
+          }
+        },
+        {
+          "comment": "import { Foo, bar } from 'Module'",
+          "match": "\\b(import)\\s+\\{([^}]*)\\}\\s+(from)\\s+(\"[^\"]*\"|'[^']*')",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" },
+            "2": {
+              "patterns": [
+                { "match": "\\b[A-Z][a-zA-Z0-9]*\\b", "name": "storage.type.madlib" },
+                { "match": "\\b[a-z][a-zA-Z0-9]*\\b", "name": "entity.name.function.madlib" }
+              ]
+            },
+            "3": { "name": "keyword.control.madlib" },
+            "4": { "name": "string.quoted.madlib" }
+          }
+        },
+        {
+          "comment": "import Module from 'path'",
+          "match": "\\b(import)\\s+([A-Z][a-zA-Z0-9]*)\\s+(from)\\s+(\"[^\"]*\"|'[^']*')",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" },
+            "2": { "name": "entity.name.namespace.madlib" },
+            "3": { "name": "keyword.control.madlib" },
+            "4": { "name": "string.quoted.madlib" }
+          }
+        }
+      ]
+    },
+
+    "operators": {
+      "patterns": [
+        { "match": "<-", "name": "keyword.operator.bind.madlib" },
+        { "match": ":=", "name": "keyword.operator.assignment.mutation.madlib" },
+        { "match": "\\+\\+", "name": "keyword.operator.concatenation.madlib" },
+        { "match": ">>>", "name": "keyword.operator.bitwise.madlib" },
+        { "match": ">>", "name": "keyword.operator.bitwise.madlib" },
+        { "match": "<<", "name": "keyword.operator.bitwise.madlib" },
+        { "match": "&&", "name": "keyword.operator.logical.madlib" },
+        { "match": "\\|\\|", "name": "keyword.operator.logical.madlib" },
+        { "match": "\\|>", "name": "keyword.operator.pipe.madlib" },
+        { "match": "->", "name": "keyword.operator.arrow.madlib" },
+        { "match": "=>", "name": "keyword.operator.arrow.madlib" },
+        { "match": "::", "name": "keyword.operator.double-colon.madlib" },
+        { "match": ">=|<=|==|!=", "name": "keyword.operator.comparison.madlib" },
+        { "match": "(?<![=!<>])=(?![>=])", "name": "keyword.operator.assignment.madlib" },
+        { "match": "\\.\\.\\.", "name": "keyword.operator.spread.madlib" },
+        { "match": "\\^", "name": "keyword.operator.bitwise.madlib" },
+        { "match": "(?<![a-zA-Z0-9_])&(?!&)", "name": "keyword.operator.bitwise.madlib" },
+        { "match": "~", "name": "keyword.operator.bitwise.madlib" },
+        { "match": "(?<![a-zA-Z0-9_])!(?!=)", "name": "keyword.operator.logical.madlib" },
+        { "match": "\\+(?!\\+)", "name": "keyword.operator.arithmetic.madlib" },
+        { "match": "(?<![a-zA-Z0-9_])-(?![>])", "name": "keyword.operator.arithmetic.madlib" },
+        { "match": "\\*", "name": "keyword.operator.arithmetic.madlib" },
+        { "match": "/(?!/)", "name": "keyword.operator.arithmetic.madlib" },
+        { "match": "%", "name": "keyword.operator.arithmetic.madlib" },
+        { "match": "(?<![a-zA-Z0-9_<])>(?![>=])", "name": "keyword.operator.comparison.madlib" },
+        { "match": "(?<![a-zA-Z0-9_])\\$(?![{a-zA-Z0-9_])", "name": "keyword.operator.placeholder.madlib" },
+        { "match": "\\?", "name": "keyword.operator.ternary.madlib" },
+        { "match": "(?<![=!<>]):", "name": "keyword.operator.colon.madlib" }
+      ]
+    },
+
     "constants": {
       "patterns": [
         {
@@ -109,713 +234,398 @@
           "match": "\\b(true|false)\\b"
         },
         {
+          "name": "constant.numeric.hex.madlib",
+          "match": "\\b0[xX][0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.madlib",
+          "match": "\\b0[bB][01]+\\b"
+        },
+        {
           "name": "constant.numeric.decimal.madlib",
-          "match": "\\b([0-9]|\\.)+\\b"
+          "match": "\\b\\d+(\\.\\d+)?\\b"
         }
       ]
     },
-    "variable-decls": {
+
+    "tuples": {
       "patterns": [
         {
-          "match": "\\s*\\b([a-zA-Z0-9]+)\\b\\s*=(?!=)",
-          "captures": {
-            "1": { "name": "variable.other.constant.madlib" }
-          }
-        }
-      ]
-    },
-    "function-calls": {
-      "patterns": [
-        {
-          "begin": "\\s*([a-zA-Z]+[a-zA-Z0-9_]*)\\(",
-          "end": "\\)",
-          "contentName": "source.mad",
+          "name": "meta.tuple.madlib",
+          "begin": "#\\[",
+          "end": "\\]",
+          "beginCaptures": { "0": { "name": "punctuation.definition.tuple.begin.madlib" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.tuple.end.madlib" } },
           "patterns": [
-            {
-              "match": "[,.]"
-            },
-            {
-              "include": "source.mad"
-            }
-          ],
-          "beginCaptures": {
-            "1": {
-              "patterns": [
-                { "match": "[a-z]+[A-Za-z0-9]*", "name": "entity.name.function.madlib" },
-                {
-                  "match": "([A-Z]+[A-Za-z0-9]*)",
-                  "captures": {
-                    "1": { "name": "constant.other.madlib" }
-                  }
-                }
-              ]
-            }
-          }
+            { "include": "#comments" },
+            { "include": "#strings" },
+            { "include": "#constants" },
+            { "include": "#operators" },
+            { "include": "#function-calls" },
+            { "include": "#tuples" },
+            { "include": "#access" },
+            { "include": "#types" }
+          ]
         }
       ]
     },
-    "function-defs": {
-      "patterns": [
-        {
-          "match": "[ ]*\\(([a-zA-Z0-9_, ]+)\\)\\s+(\\=\\>)",
-          "captures": {
-            "1": {
-              "name": "variable.parameter.madlib",
-              "patterns": [
-                {
-                  "name": "constant.character.escape.madlib",
-                  "match": "\\,"
-                }
-              ]
-            },
-            "2": { "name": "keyword.operator.double-colon.madlib" }
-          }
-        },
-        {
-          "match": "\\(([a-zA-Z0-9_, ]+)\\)\\s+(=>)\\s+(.*)",
-          "captures": {
-            "1": {
-              "name": "variable.parameter.madlib",
-              "patterns": [
-                {
-                  "name": "constant.character.escape.madlib",
-                  "match": "\\,"
-                }
-              ]
-            },
-            "2": { "name": "keyword.operator.double-colon.madlib" },
-            "3": { 
-              "patterns": [
-                { "include": "#strings" },
-                { "include": "#function-defs" },
-                { "include": "#function-calls" },
-                { "include": "#access" },
-                { "include": "#constants" },
-                { "include": "#jscode" },
-                { "include": "#jsx" },
-                { "include": "#where" }
-              ]
-             }
-          }
-        },
-        {
-          "match": "\\s*([a-zA-Z0-9_]+)[ ]*=[ ]*\\(([a-zA-Z_, ]+)\\)[ ]*(=>)",
-          "captures": {
-            "1": { "name": "entity.name.function.madlib" },
-            "2": {
-              "name": "variable.parameter.madlib",
-              "patterns": [
-                {
-                  "name": "constant.character.escape.madlib",
-                  "match": "\\,"
-                }
-              ]
-            },
-            "3": { "name": "keyword.operator.double-colon.madlib" },
-            "4": {
-              "patterns": [
-                { "include": "#strings" },
-                { "include": "#function-calls" },
-                { "include": "#access" },
-                { "include": "#constants" },
-                { "include": "#jscode" },
-                { "include": "#jsx" },
-                { "include": "#where" }
-              ]
-             }
-          }
-        },
-        {
-          "match": "([a-zA-Z0-9]+)\\s*(::)([^,]*)",
-          "captures": {
-            "1": { "name": "entity.name.function.madlib" },
-            "2": { "name": "keyword.operator.double-colon.madlib" },
-            "3": {
-              "patterns": [
-                { "name": "storage.type.madlib", "match": "[A-Z]+[A-Za-z0-9]*" },
-                { "name": "keyword.operator.arrow.madlib", "match": "->" },
-                { "name": "keyword.operator.arrow.madlib", "match": "=>" }
-              ]
-            }
-          },
-          "name": "meta.function.type-declaration.madlib"
-        }
-      ]
-    },
+
     "types": {
       "patterns": [
         {
-          "match": "->",
-          "name": "keyword.operator.arrow.madlib"
-        },
-        {
-          "match": "\\.\\.\\.",
-          "name": "keyword.operator.arrow.madlib"
-        },
-        {
-          "match": ":",
-          "name": "keyword.operator.arrow.madlib"
-        },
-        {
-          "match": "<",
-          "name": "keyword.operator.arrow.madlib"
-        },
-        {
-          "match": ">",
-          "name": "keyword.operator.arrow.madlib"
-        },
-        {
-          "match": "\\|>",
-          "name": "keyword.operator.arrow.madlib"
-        },
-        {
-          "match": "::",
-          "name": "keyword.operator.double-colon.madlib"
-        },
-        {
-          "match": "(\\|\\s|=\\s)?\\b[A-Z0-9_]+\\b",
-          "name": "constant.other.madlib"
-        },
-        {
-          "match": "=?\\s*\\b([A-Z]+[a-zA-Z0-9]*)\\b",
-          "captures": { "1": { "name": "constant.other.madlib" } }
-        },
-        {
-          "match": "\\|\\s*\\b([A-Z]+[a-zA-Z0-9]*)\\b",
-          "captures": { "1": { "name": "constant.other.madlib" } }
-        },
-        {
-          "match": "(type|alias)\\s+\\b([A-Z]+[A-Za-z0-9]*)\\b\\s*.*\\s*=\\s*(.*)",
+          "comment": "type/alias declaration: type Foo = ... or alias Foo = ...",
+          "match": "\\b(type|alias)\\s+([A-Z][a-zA-Z0-9]*)([^=]*)(=)",
           "captures": {
             "1": { "name": "keyword.control.madlib" },
             "2": { "name": "storage.type.madlib" },
             "3": {
               "patterns": [
-                { "include": "#types" },
-                {
-                  "name": "constant.other.madlib",
-                  "match": "\\b[A-Z]+[A-Za-z0-9]*\\b"
-                },
-                {
-                  "name": "keyword.operator.pipe.madlib",
-                  "match": "\\|"
-                }
+                { "match": "\\b[a-z][a-zA-Z0-9]*\\b", "name": "variable.parameter.madlib" }
               ]
-            }
-          },
-          "patterns": [
-            {
-              "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b",
-              "captures": {
-                "1": { "name": "constant.other.madlib" }
-              }
-            }
-          ]
+            },
+            "4": { "name": "keyword.operator.assignment.madlib" }
+          }
         },
         {
-          "match": "(type)\\s+\\b([A-Z]+[A-Za-z0-9]*)\\b.*",
+          "comment": "Union type variants starting with | Constructor",
+          "match": "(?<=\\|)\\s*([A-Z][a-zA-Z0-9]*)",
           "captures": {
-            "1": { "name": "keyword.control.madlib" },
-            "2": { "name": "storage.type.madlib" }
-          },
-          "patterns": [
-            {
-              "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b",
-              "captures": {
-                "1": { "name": "constant.other.madlib" }
-              }
-            }
-          ]
+            "1": { "name": "entity.name.type.variant.madlib" }
+          }
+        },
+        {
+          "comment": "Type constructor (PascalCase identifier)",
+          "match": "\\b([A-Z][a-zA-Z0-9]*)\\b",
+          "captures": {
+            "1": { "name": "storage.type.madlib" }
+          }
         }
       ]
     },
-    "where": {
-      "patterns": [{
-        "match": "(where)\\((.*)\\)[ ]*\\{",
-        "captures": {
-          "2": {
-            "patterns": [
-              { "include": "#function-calls" },
-              { "include": "#function-defs" },
-              { "include": "#strings" },
-              { "include": "#constants" },
-              { "include": "#types" },
-              { "include": "#access" },
-              { "include": "#where" },
-              { "include": "#jscode" },
-              { "include": "#tuples" }
-            ]
+
+    "function-defs": {
+      "patterns": [
+        {
+          "comment": "Type annotation: name :: Type -> Type",
+          "match": "^([a-z_][a-zA-Z0-9_]*)\\s*(::)(.*)",
+          "captures": {
+            "1": { "name": "entity.name.function.madlib" },
+            "2": { "name": "keyword.operator.double-colon.madlib" },
+            "3": {
+              "patterns": [
+                { "include": "#types" },
+                { "match": "->", "name": "keyword.operator.arrow.madlib" },
+                { "match": "=>", "name": "keyword.operator.constraint.madlib" },
+                { "match": "\\b[a-z][a-zA-Z0-9]*\\b", "name": "variable.parameter.madlib" }
+              ]
+            }
+          },
+          "name": "meta.function.type-annotation.madlib"
+        },
+        {
+          "comment": "Named function definition: name = (params) =>",
+          "match": "^([a-z_][a-zA-Z0-9_]*)\\s*=\\s*(?=\\(|where)",
+          "captures": {
+            "1": { "name": "entity.name.function.madlib" }
+          }
+        },
+        {
+          "comment": "Lambda parameters: (a, b) =>",
+          "match": "\\(([a-zA-Z0-9_, ]*)\\)\\s*(=>)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.madlib",
+              "patterns": [
+                { "match": ",", "name": "punctuation.separator.madlib" }
+              ]
+            },
+            "2": { "name": "keyword.operator.arrow.madlib" }
           }
         }
-      },
-      {
-        "match": "[ ]*\\(?([a-zA-Z0-9_, ]+)\\)?\\s+(\\=\\>)",
-        "captures": {
-          "1": {
-            "name": "variable.parameter.madlib",
-            "patterns": [
-              {
-                "match": "\\b[A-Z]+[a-zA-Z0-9_]*\\b",
-                "name": "variable.other.constant.madlib"
-              },
-              {
-                "name": "constant.character.escape.madlib",
-                "match": "\\,"
-              }
-            ]
-          },
-          "2": { "name": "keyword.operator.double-colon.madlib" }
-        }
-      }]
+      ]
     },
+
+    "function-calls": {
+      "patterns": [
+        {
+          "comment": "Module.function( call",
+          "match": "\\b([A-Z][a-zA-Z0-9]*)\\.(([a-z][a-zA-Z0-9_]*)(?=\\())",
+          "captures": {
+            "1": { "name": "entity.name.namespace.madlib" },
+            "2": { "name": "entity.name.function.madlib" }
+          }
+        },
+        {
+          "comment": "lowercase function call: foo(",
+          "match": "\\b([a-z][a-zA-Z0-9_]*)(?=\\()",
+          "captures": {
+            "1": { "name": "entity.name.function.madlib" }
+          }
+        }
+      ]
+    },
+
+    "where": {
+      "patterns": [
+        {
+          "comment": "where(...) { pattern matching with scrutinee",
+          "match": "\\b(where)\\s*\\(",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" }
+          }
+        },
+        {
+          "comment": "where { pattern matching block",
+          "match": "\\b(where)\\s*(?=\\{)",
+          "captures": {
+            "1": { "name": "keyword.control.madlib" }
+          }
+        },
+        {
+          "comment": "Pattern match arm: Constructor(...) =>",
+          "match": "\\b([A-Z][a-zA-Z0-9]*)(?=\\s*[({\\[]|\\s+=>)",
+          "captures": {
+            "1": { "name": "entity.name.type.variant.madlib" }
+          }
+        },
+        {
+          "comment": "Wildcard pattern arm",
+          "match": "(?<=^|\\s)(_)(?=\\s*=>)",
+          "captures": {
+            "1": { "name": "variable.language.wildcard.madlib" }
+          }
+        }
+      ]
+    },
+
     "access": {
       "patterns": [
         {
-          "match": "([.*].*)",
-          "patterns": [
-            { "include": "#function-calls" },
-            { "include": "#function-defs" },
-            { "include": "#strings" },
-            { "include": "#constants" },
-            { "include": "#types" },
-            { "include": "#access" },
-            { "include": "#where" },
-            { "include": "#jscode" }
-          ]
-        },
-        {
-          "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b\\.([a-z]+[a-zA-Z0-9]*\\(?.*\\)?)",
+          "comment": "Module.Member access (PascalCase.PascalCase)",
+          "match": "\\b([A-Z][a-zA-Z0-9]*)\\.(([A-Z][a-zA-Z0-9]*))",
           "captures": {
-            "1": { "name": "variable.other.constant.madlib" },
-            "2": {
-              "patterns": [
-                { "include": "#where" },
-                { "include": "#strings" },
-                { "include": "#keywords" },
-                { "include": "#types" },
-                { "include": "#function-calls" },
-                { "include": "#function-defs" },
-                { "match": "\\b[A-Z]+[A-Za-z0-9]*\\b", "name": "variable.other.constant.madlib" }
-              ]
-            }
+            "1": { "name": "entity.name.namespace.madlib" },
+            "2": { "name": "storage.type.madlib" }
           }
         },
         {
-          "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b\\.([A-Z]+[a-zA-z0-9]*)",
+          "comment": "Module.member access (PascalCase.camelCase)",
+          "match": "\\b([A-Z][a-zA-Z0-9]*)\\.([a-z][a-zA-Z0-9_]*)",
           "captures": {
-            "1": { "name": "variable.other.constant.madlib" },
-            "2": {
-              "patterns": [
-                {
-                  "match": "([a-z]+[a-zA-Z0-9]*)\\((.*)\\)",
-                  "captures": {
-                    "1": {
-                      "name": "entity.name.function.madlib"
-                    },
-                    "2": {
-                      "patterns": [
-                        {
-                          "include": "#access"
-                        },
-                        { "include": "#where" },
-                        { "include": "#strings" },
-                        { "include": "#keywords" },
-                        { "include": "#function-defs" }
-                      ]
-                    }
-                  }
-                },
-                { "match": "\\b[A-Z]+[A-Za-z0-9]*\\b", "name": "storage.type.madlib" }
-              ]
-            }
+            "1": { "name": "entity.name.namespace.madlib" },
+            "2": { "name": "variable.other.property.madlib" }
           }
         },
         {
-          "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b\\.(.*)",
+          "comment": "Record field accessor .fieldName used as function",
+          "match": "(?<![a-zA-Z0-9_])\\.([a-z][a-zA-Z0-9_]*)",
           "captures": {
-            "2": {
-              "patterns": [{ "include": "#where" }]
-            }
+            "1": { "name": "variable.other.property.madlib" }
           }
         }
       ]
     },
+
     "interface": {
       "patterns": [
         {
-          "match": "(interface|instance)\\s+(.*)\\s+(=>)\\s+(.*)",
+          "comment": "interface/instance with constraint: interface (Foo a) => Bar a {",
+          "match": "\\b(interface|instance)\\b(.+?)(=>)(.+?)(?=\\{|$)",
           "captures": {
-            "1": {
-              "name": "keyword.control.madlib"
-            },
+            "1": { "name": "keyword.control.madlib" },
             "2": {
-              "patterns": [{ "include": "#interface" }]
+              "patterns": [
+                { "match": "\\b[A-Z][a-zA-Z0-9]*\\b", "name": "storage.type.madlib" },
+                { "match": "\\b[a-z][a-zA-Z0-9]*\\b", "name": "variable.parameter.madlib" }
+              ]
             },
-            "3": {
-              "name": "keyword.control.madlib"
-            },
+            "3": { "name": "keyword.operator.constraint.madlib" },
             "4": {
-              "patterns": [{ "include": "#interface" }]
+              "patterns": [
+                { "match": "\\b[A-Z][a-zA-Z0-9]*\\b", "name": "storage.type.madlib" },
+                { "match": "\\b[a-z][a-zA-Z0-9]*\\b", "name": "variable.parameter.madlib" }
+              ]
             }
           }
         },
         {
-          "match": "(interface|instance)\\s+(.*)",
+          "comment": "interface/instance without constraint: instance Functor List {",
+          "match": "\\b(interface|instance)\\b(.+?)(?=\\{|$)",
           "captures": {
-            "1": {
-              "name": "keyword.control.madlib"
-            },
+            "1": { "name": "keyword.control.madlib" },
             "2": {
-              "patterns": [{ "include": "#interface" }]
+              "patterns": [
+                { "match": "\\b[A-Z][a-zA-Z0-9]*\\b", "name": "storage.type.madlib" },
+                { "match": "\\b[a-z][a-zA-Z0-9]*\\b", "name": "variable.parameter.madlib" }
+              ]
             }
-          }
-        },
-        {
-          "match": "\\s*(=>)\\s*(.*)?",
-          "disabled": 1,
-          "captures": {
-            "1": { "patterns": [{ "include": "#interface" }] },
-            "2": { "name": "keyword.control.madlib" },
-            "3": { "patterns": [{ "include": "#interface" }] }
-          }
-        },
-        {
-          "match": "\\b([A-Z]+[A-Za-z0-9]*)\\b\\s\\(?([A-Z]+[A-Za-z0-9]*)?",
-          "captures": {
-            "1": { "name": "storage.type.madlib" },
-            "2": { "name": "constant.other.madlib" }
           }
         }
       ]
     },
-    "comments": {
-      "patterns": [
-        {
-          "match": "(//.*)",
-          "captures": {
-            "1": { "name": "comment.line.double-slash.madlib" }
-          }
-        },
-        {
-          "contentName": "comment.block.js",
-          "begin": "\\s*+((/\\*))",
-          "end": "(\\s*(\\*/))",
-          "captures": {
-            "1": {
-              "name": "comment.block.js"
-            },
-            "2": {
-              "name": "punctuation.definition.comment.js"
-            }
-          },
-          "patterns": [{ "match": "@\\w*", "name": "storage.type.class.jsdoc" }]
-        }
-      ]
-    },
+
     "jscode": {
-      "name": "js.block.mad",
-      "begin": "(.*)#\\-(?!\\-#)",
-      "end": "(.*)\\-#",
+      "name": "meta.embedded.js-block.madlib",
+      "begin": "#-(?!-#)",
+      "end": "-#",
+      "beginCaptures": { "0": { "name": "punctuation.definition.jscode.begin.madlib" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.jscode.end.madlib" } },
       "contentName": "meta.embedded.block.javascript",
-      "endCaptures": {
-        "1": {
-          "name": "meta.embedded.block.javascript",
-          "patterns": [
-            {
-              "name": "meta.embedded.block.javascript",
-              "include": "source.js"
-            }
-          ]
-        }
-      },
-      "beginCaptures": {
-        "1": {
-          "patterns": [{ "include": "source.mad" }]
-        },
-        "2": {
-          "patterns": [{ "include": "source.js" }]
-        }
-      },
       "patterns": [{ "include": "source.js" }]
     },
+
     "jsx": {
-      "comment": "Avoid < operator expressions as best we can using Zertosh's regex",
+      "comment": "Avoid < operator expressions as best we can",
       "patterns": [
         {
           "begin": "(?<=\\(|{|\\[|&&|\\|\\||\\?|:|=|=>|\\Wreturn|^return|^)\\s*+(?=<([^,]|[ ]*|\\{.*\\})+$|<\\s*>)",
           "end": "(?=.)",
           "applyEndPatternLast": 1,
           "patterns": [
-            {
-              "include": "#jsx-tag-element-name"
-            }
+            { "include": "#jsx-tag-element-name" }
           ]
         }
       ]
     },
+
     "jsx-tag-element-name": {
       "patterns": [
         {
-          "comment": "JSX Fragment",
+          "comment": "JSX Fragment <>...</>",
           "name": "meta.tag.jsx",
-          "contentName": "JSXAttrs",
-          "begin": "\\s*+(<)\\s*(?=>)",
+          "begin": "\\s*(<)\\s*(?=>)",
           "end": "(?<=</)(>)",
-          "beginCaptures": {
-            "1": {
-              "name": "punctuation.definition.tag.jsx"
-            }
-          },
-          "endCaptures": {
-            "1": {
-              "name": "punctuation.definition.tag.jsx"
-            }
-          },
-          "patterns": [
-            {
-              "include": "#jsx-tag-termination"
-            }
-          ]
+          "beginCaptures": { "1": { "name": "punctuation.definition.tag.jsx" } },
+          "endCaptures": { "1": { "name": "punctuation.definition.tag.jsx" } },
+          "patterns": [{ "include": "#jsx-tag-termination" }]
         },
         {
-          "comment": "Tags that end > are trapped in #jsx-tag-termination",
           "name": "meta.tag.jsx",
-          "contentName": "JSXAttrs",
-          "begin": "\\s*+(<)((\\p{Ll}[\\p{Ll}0-9]*)|((?:[$_\\p{L}\\p{Nl}][$_\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}-]*?:)?+(?:[$_\\p{L}\\p{Nl}](?:[$_\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}\\.-](?<!\\.\\.))*+)+))(?=[ />\\s])(?![:])(?<!\\.|:)",
+          "begin": "\\s*(<)((\\p{Ll}[\\p{Ll}0-9]*)|((?:[$_\\p{L}\\p{Nl}][$_\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}-]*?:)?+(?:[$_\\p{L}\\p{Nl}](?:[$_\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}\\.-](?<!\\.\\.))*+)+))(?=[ />\\s])(?![:])(?<!\\.|:)",
           "end": "\\s*(?<=</)((\\4)|\\2)(>)|(/>)|((?<=</)[\\S ]*?)>",
           "beginCaptures": {
-            "1": {
-              "name": "punctuation.definition.tag.jsx"
-            },
-            "2": {
-              "name": "entity.name.tag.open.jsx"
-            },
-            "4": {
-              "name": "support.class.component.open.jsx"
-            }
+            "1": { "name": "punctuation.definition.tag.jsx" },
+            "2": { "name": "entity.name.tag.open.jsx" },
+            "4": { "name": "support.class.component.open.jsx" }
           },
           "endCaptures": {
-            "1": {
-              "name": "entity.name.tag.close.jsx"
-            },
-            "2": {
-              "name": "support.class.component.close.jsx"
-            },
-            "3": {
-              "name": "punctuation.definition.tag.jsx"
-            },
-            "4": {
-              "name": "punctuation.definition.tag.jsx"
-            },
-            "5": {
-              "name": "invalid.illegal.termination.jsx"
-            }
+            "1": { "name": "entity.name.tag.close.jsx" },
+            "2": { "name": "support.class.component.close.jsx" },
+            "3": { "name": "punctuation.definition.tag.jsx" },
+            "4": { "name": "punctuation.definition.tag.jsx" },
+            "5": { "name": "invalid.illegal.termination.jsx" }
           },
           "patterns": [
-            {
-              "include": "#jsx-tag-termination"
-            },
-            {
-              "include": "#jsx-tag-attributes"
-            }
+            { "include": "#jsx-tag-termination" },
+            { "include": "#jsx-tag-attributes" }
           ]
         }
       ]
     },
+
     "jsx-tag-termination": {
       "patterns": [
         {
-          "comment": "uses non consuming search for </ in </tag>",
-          "contentName": "JSXNested",
+          "contentName": "meta.jsx.children",
           "begin": "(>)",
           "end": "(</)",
-          "beginCaptures": {
-            "0": {
-              "name": "punctuation.definition.tag.jsx"
-            },
-            "1": {
-              "name": "JSXStartTagEnd"
-            }
-          },
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.tag.jsx"
-            },
-            "1": {
-              "name": "JSXEndTagStart"
-            }
-          },
+          "beginCaptures": { "1": { "name": "punctuation.definition.tag.jsx" } },
+          "endCaptures": { "1": { "name": "punctuation.definition.tag.jsx" } },
           "patterns": [
-            {
-              "include": "#jsx-evaluated-code"
-            },
-            {
-              "include": "#jsx-entities"
-            },
-            {
-              "include": "#jsx-tag-element-name"
-            }
+            { "include": "#jsx-evaluated-code" },
+            { "include": "#jsx-entities" },
+            { "include": "#jsx-tag-element-name" }
           ]
         }
       ]
     },
+
     "jsx-tag-attributes": {
       "patterns": [
-        {
-          "include": "#jsx-attribute-name"
-        },
-        {
-          "include": "#jsx-assignment"
-        },
-        {
-          "include": "#jsx-string-double-quoted"
-        },
-        {
-          "include": "#jsx-string-single-quoted"
-        },
-        {
-          "include": "#jsx-evaluated-code"
-        },
-        {
-          "include": "#jsx-tag-element-name"
-        },
-        {
-          "include": "#comments"
-        }
+        { "include": "#jsx-attribute-name" },
+        { "include": "#jsx-assignment" },
+        { "include": "#jsx-string-double-quoted" },
+        { "include": "#jsx-string-single-quoted" },
+        { "include": "#jsx-evaluated-code" },
+        { "include": "#jsx-tag-element-name" },
+        { "include": "#comments" }
       ]
     },
+
     "jsx-spread-attribute": {
       "patterns": [
-        {
-          "comment": "Spread attribute { ... AssignmentExpression }",
-          "match": "(?<!\\.)\\.\\.\\.",
-          "name": "keyword.operator.spread.jsx"
-        }
+        { "match": "(?<!\\.)\\.\\.\\.", "name": "keyword.operator.spread.jsx" }
       ]
     },
+
     "jsx-attribute-name": {
       "patterns": [
         {
-          "comment": "look for attribute name",
           "match": "(?<!\\S)([$_\\p{L}](?:[$.\\p{L}\\p{Mn}\\p{Mc}\\p{Nd}\\p{Nl}\\p{Pc}-](?<!\\.\\.))*+)(?<!\\.)(?=//|/\\*|=|\\s|>|/>)",
-          "captures": {
-            "0": {
-              "name": "entity.other.attribute-name.jsx"
-            }
-          }
+          "captures": { "0": { "name": "entity.other.attribute-name.jsx" } }
         }
       ]
     },
+
     "jsx-assignment": {
       "patterns": [
         {
-          "comment": "look for attribute assignment",
           "name": "keyword.operator.assignment.jsx",
           "match": "=(?=\\s*(?:'|\"|{|/\\*|<|//|\\n))"
         }
       ]
     },
+
     "jsx-string-double-quoted": {
-      "name": "string.quoted.double.js",
+      "name": "string.quoted.double.jsx",
       "begin": "\"",
       "end": "\"(?<!\\\\\")",
-      "beginCaptures": {
-        "0": {
-          "name": "punctuation.definition.string.begin.jsx"
-        }
-      },
-      "endCaptures": {
-        "0": {
-          "name": "punctuation.definition.string.end.jsx"
-        }
-      },
-      "patterns": [
-        {
-          "include": "#jsx-entities"
-        }
-      ]
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.jsx" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.jsx" } },
+      "patterns": [{ "include": "#jsx-entities" }]
     },
+
     "jsx-string-single-quoted": {
-      "name": "string.quoted.single.js",
+      "name": "string.quoted.single.jsx",
       "begin": "'",
       "end": "'(?<!\\\\')",
-      "beginCaptures": {
-        "0": {
-          "name": "punctuation.definition.string.begin.jsx"
-        }
-      },
-      "endCaptures": {
-        "0": {
-          "name": "punctuation.definition.string.end.jsx"
-        }
-      },
-      "patterns": [
-        {
-          "include": "#jsx-entities"
-        }
-      ]
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.jsx" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.jsx" } },
+      "patterns": [{ "include": "#jsx-entities" }]
     },
+
     "jsx-evaluated-code": {
       "patterns": [
         {
-          "name": "meta.embedded.expression.mad",
+          "name": "meta.embedded.expression.jsx",
           "contentName": "source.mad",
           "begin": "{",
           "end": "}",
-          "beginCaptures": {
-            "0": {
-              "name": "punctuation.section.embedded.begin.jsx"
-            }
-          },
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.section.embedded.end.jsx"
-            }
-          },
+          "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.jsx" } },
+          "endCaptures": { "0": { "name": "punctuation.section.embedded.end.jsx" } },
           "patterns": [
-            {
-              "include": "source.mad"
-            },
-            {
-              "include": "#jsx-string-double-quoted"
-            },
-            {
-              "include": "#jsx-string-single-quoted"
-            },
-            {
-              "include": "#jsx-spread-attribute"
-            }
+            { "include": "source.mad" },
+            { "include": "#jsx-string-double-quoted" },
+            { "include": "#jsx-string-single-quoted" },
+            { "include": "#jsx-spread-attribute" }
           ]
         }
       ]
     },
+
     "jsx-entities": {
       "patterns": [
         {
-          "comment": "Embeded HTML entities &blah",
           "match": "(&)([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+)(;)",
           "captures": {
-            "0": {
-              "name": "constant.character.entity.jsx"
-            },
-            "1": {
-              "name": "punctuation.definition.entity.jsx"
-            },
-            "2": {
-              "name": "entity.name.tag.html.jsx"
-            },
-            "3": {
-              "name": "punctuation.definition.entity.jsx"
-            }
+            "0": { "name": "constant.character.entity.jsx" },
+            "1": { "name": "punctuation.definition.entity.jsx" },
+            "2": { "name": "entity.name.tag.html.jsx" },
+            "3": { "name": "punctuation.definition.entity.jsx" }
           }
         },
-        {
-          "comment": "Entity with & and invalid name",
-          "match": "&\\s*+;",
-          "name": "invalid.illegal.bad-ampersand.jsx"
-        }
+        { "match": "&\\s*+;", "name": "invalid.illegal.bad-ampersand.jsx" }
       ]
     }
-  },
-  "scopeName": "source.mad"
+  }
 }

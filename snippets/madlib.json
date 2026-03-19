@@ -1,0 +1,218 @@
+{
+  "Function with type signature": {
+    "prefix": "fn",
+    "body": [
+      "${1:functionName} :: ${2:InputType} -> ${3:OutputType}",
+      "${1:functionName} = (${4:param}) => {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Function definition with type annotation"
+  },
+
+  "Exported function with type signature": {
+    "prefix": "efn",
+    "body": [
+      "${1:functionName} :: ${2:InputType} -> ${3:OutputType}",
+      "export ${1:functionName} = (${4:param}) => {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Exported function definition with type annotation"
+  },
+
+  "Type alias": {
+    "prefix": "alias",
+    "body": [
+      "export alias ${1:TypeName} = {",
+      "\t${2:field} :: ${3:Type}$0",
+      "}"
+    ],
+    "description": "Record type alias declaration"
+  },
+
+  "ADT type declaration": {
+    "prefix": "type",
+    "body": [
+      "export type ${1:TypeName}",
+      "\t= ${1:TypeName}(${2:Type})$0"
+    ],
+    "description": "Algebraic data type declaration"
+  },
+
+  "ADT type with variants": {
+    "prefix": "typev",
+    "body": [
+      "export type ${1:TypeName}",
+      "\t= ${2:Variant1}(${3:Type})",
+      "\t| ${4:Variant2}(${5:Type})$0"
+    ],
+    "description": "Algebraic data type with multiple variants"
+  },
+
+  "Import named": {
+    "prefix": "import",
+    "body": [
+      "import { ${2:name} } from \"${1:Module}\""
+    ],
+    "description": "Named import statement"
+  },
+
+  "Import module": {
+    "prefix": "importm",
+    "body": [
+      "import ${1:Module} from \"${1:Module}\""
+    ],
+    "description": "Module import statement"
+  },
+
+  "Import type": {
+    "prefix": "importt",
+    "body": [
+      "import type { ${2:TypeName} } from \"${1:Module}\""
+    ],
+    "description": "Type import statement"
+  },
+
+  "Do-notation block": {
+    "prefix": "do",
+    "body": [
+      "do {",
+      "\t${1:result} <- ${2:action}",
+      "\treturn of(${3:result})",
+      "}"
+    ],
+    "description": "Monadic do-notation block"
+  },
+
+  "Where pattern match (block form)": {
+    "prefix": "where",
+    "body": [
+      "where(${1:value}) {",
+      "\t${2:Pattern}(${3:a}) =>",
+      "\t\t${4:expression}",
+      "",
+      "\t_ =>",
+      "\t\t${0:defaultExpression}",
+      "}"
+    ],
+    "description": "Where pattern matching block with scrutinee"
+  },
+
+  "Where pattern match (lambda form)": {
+    "prefix": "wheref",
+    "body": [
+      "where {",
+      "\t${1:Pattern}(${2:a}) =>",
+      "\t\t${3:expression}",
+      "",
+      "\t_ =>",
+      "\t\t${0:defaultExpression}",
+      "}"
+    ],
+    "description": "Where pattern matching as function (no scrutinee)"
+  },
+
+  "Typeclass instance": {
+    "prefix": "instance",
+    "body": [
+      "instance ${1:Typeclass} ${2:Type} {",
+      "\t${3:method} = ${0:(param) => param}",
+      "}"
+    ],
+    "description": "Typeclass instance declaration"
+  },
+
+  "Typeclass interface": {
+    "prefix": "interface",
+    "body": [
+      "interface ${1:Typeclass} ${2:a} {",
+      "\t${3:method} :: ${2:a} -> ${0:Result}",
+      "}"
+    ],
+    "description": "Typeclass interface declaration"
+  },
+
+  "Pipe composition": {
+    "prefix": "pipe",
+    "body": [
+      "pipe(",
+      "\t${1:firstFn},",
+      "\t${2:secondFn},",
+      "\t${0:thirdFn},",
+      ")(${3:value})"
+    ],
+    "description": "Function composition with pipe"
+  },
+
+  "If-else expression": {
+    "prefix": "if",
+    "body": [
+      "${1:condition} ? ${2:thenValue} : ${0:elseValue}"
+    ],
+    "description": "Ternary if-else expression"
+  },
+
+  "Test case": {
+    "prefix": "test",
+    "body": [
+      "test(\"${1:description}\", (_) =>",
+      "\t${2:assertEquals}(${3:actual}, ${0:expected})",
+      ")"
+    ],
+    "description": "Test case with assertEquals"
+  },
+
+  "Derive instance": {
+    "prefix": "derive",
+    "body": [
+      "derive ${1:Comparable} ${2:TypeName}"
+    ],
+    "description": "Derive typeclass instance"
+  },
+
+  "Extern FFI declaration": {
+    "prefix": "extern",
+    "body": [
+      "${1:functionName} :: ${2:Type}",
+      "${1:functionName} = extern \"${0:externalName}\""
+    ],
+    "description": "FFI extern binding declaration"
+  },
+
+  "Inline JavaScript block": {
+    "prefix": "jscode",
+    "body": [
+      "#- ${0:javascriptExpression} -#"
+    ],
+    "description": "Inline JavaScript block"
+  },
+
+  "Conditional compilation": {
+    "prefix": "iftarget",
+    "body": [
+      "#iftarget llvm",
+      "\t${1:llvmCode}",
+      "#elseif js",
+      "\t${0:jsCode}",
+      "#endif"
+    ],
+    "description": "Conditional compilation for LLVM and JS targets"
+  },
+
+  "Record update (spread)": {
+    "prefix": "spread",
+    "body": [
+      "{ ...${1:record}, ${2:field}: ${0:newValue} }"
+    ],
+    "description": "Record update using spread syntax"
+  },
+
+  "Tuple literal": {
+    "prefix": "tuple",
+    "body": [
+      "#[${1:first}, ${0:second}]"
+    ],
+    "description": "Tuple literal"
+  }
+}

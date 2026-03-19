@@ -1,36 +1,95 @@
-const { LanguageClient } = require("vscode-languageclient");
-
+const { LanguageClient, RevealOutputChannelOn } = require("vscode-languageclient");
 const vscode = require("vscode");
-
 const { execSync } = require("child_process");
-const path = require("path");
 
 let client;
+let statusBar;
+let outputChannel;
+let traceOutputChannel;
 
+const escapeShell = (cmd) =>
+  '"' + cmd.replace(/(["\$`\\])/g, "\\$1") + '"';
 
-const escapeShell = function(cmd) {
-  return '"'+cmd.replace(/(["\$`\\])/g,'\\$1')+'"';
-};
+function getMadlibPath() {
+  return vscode.workspace.getConfiguration("madlib").get("server.path") || "madlib";
+}
 
-exports.activate = (context) => {
-  console.log(context);
+function isMadlibAvailable(madlibPath) {
+  try {
+    execSync(`${madlibPath} --version`, { encoding: "utf-8", timeout: 5000 });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
-  // let options = { command: "madlib", args: ["lsp", "+RTS", "-p"] }
-  // let options = { command: "madlib", args: ["lsp", "+RTS", "-A50m", "-H500m", "-N3"] }
-  let options = { command: "madlib", args: ["lsp"] }
+function setStatusBar(state) {
+  if (!statusBar) return;
+  switch (state) {
+    case "starting":
+      statusBar.text = "$(sync~spin) Madlib";
+      statusBar.tooltip = "Madlib Language Server is starting...";
+      statusBar.backgroundColor = undefined;
+      break;
+    case "ready":
+      statusBar.text = "$(check) Madlib";
+      statusBar.tooltip = "Madlib Language Server is ready — click to restart";
+      statusBar.backgroundColor = undefined;
+      break;
+    case "error":
+      statusBar.text = "$(error) Madlib";
+      statusBar.tooltip = "Madlib Language Server error — click to restart";
+      statusBar.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+      break;
+    case "stopped":
+      statusBar.text = "$(circle-slash) Madlib";
+      statusBar.tooltip = "Madlib Language Server stopped — click to restart";
+      statusBar.backgroundColor = undefined;
+      break;
+  }
+}
 
-  let serverOptions = {
-    run: options,
-    debug: options,
-  };
+exports.activate = async (context) => {
+  outputChannel = vscode.window.createOutputChannel("Madlib Language Server");
+  traceOutputChannel = vscode.window.createOutputChannel("Madlib Language Server Trace");
 
-  // Options to control the language client
-  let clientOptions = {
+  statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBar.command = "madlib.restartLanguageServer";
+  setStatusBar("starting");
+  statusBar.show();
+
+  context.subscriptions.push(outputChannel, traceOutputChannel, statusBar);
+
+  const madlibPath = getMadlibPath();
+
+  if (!isMadlibAvailable(madlibPath)) {
+    setStatusBar("error");
+    const action = await vscode.window.showErrorMessage(
+      `Madlib: '${madlibPath}' binary not found in PATH. Please install Madlib to enable language features.`,
+      "Open Installation Guide"
+    );
+    if (action === "Open Installation Guide") {
+      vscode.env.openExternal(vscode.Uri.parse("https://madlib-lang.org"));
+    }
+    return;
+  }
+
+  const options = { command: madlibPath, args: ["lsp"] };
+  const serverOptions = { run: options, debug: options };
+
+  const fileWatcher = vscode.workspace.createFileSystemWatcher("**/*.mad");
+  context.subscriptions.push(fileWatcher);
+
+  const clientOptions = {
     documentSelector: [{ scheme: "file", language: "madlib" }],
-    // hoverProvider: true,
+    outputChannel,
+    traceOutputChannel,
+    revealOutputChannelOn: RevealOutputChannelOn.Never,
+    synchronize: {
+      fileEvents: fileWatcher,
+    },
   };
 
-  // Create the language client and start the client.
   client = new LanguageClient(
     "MadlibServer",
     "Madlib Language Server",
@@ -38,43 +97,82 @@ exports.activate = (context) => {
     clientOptions
   );
 
-  vscode.languages.registerDocumentFormattingEditProvider("madlib", {
+  client.onDidChangeState((event) => {
+    const { State } = require("vscode-languageclient");
+    if (event.newState === State.Running) {
+      setStatusBar("ready");
+    } else if (event.newState === State.Stopped) {
+      setStatusBar("stopped");
+    } else if (event.newState === State.Starting) {
+      setStatusBar("starting");
+    }
+  });
+
+  const formattingProvider = vscode.languages.registerDocumentFormattingEditProvider("madlib", {
     provideDocumentFormattingEdits(document) {
+      const rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (!rootPath) {
+        vscode.window.showErrorMessage("Madlib: No workspace folder open. Cannot format.");
+        return [];
+      }
       try {
         const result = execSync(
-          `madlib format --text ${escapeShell(document.getText())}`,
-          { encoding: "utf-8", cwd: vscode.workspace.rootPath }
+          `${getMadlibPath()} format --text ${escapeShell(document.getText())}`,
+          { encoding: "utf-8", cwd: rootPath }
         );
-
         const firstLine = document.lineAt(0);
         const lastLine = document.lineAt(document.lineCount - 1);
-        const textRange = new vscode.Range(
-          firstLine.range.start,
-          lastLine.range.end
-        );
+        const textRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
         return [vscode.TextEdit.replace(textRange, result)];
       } catch (e) {
-        console.error(e);
+        vscode.window.showErrorMessage(`Madlib formatter failed: ${e.message}`);
         return [];
       }
     },
   });
+  context.subscriptions.push(formattingProvider);
 
-  // Start the client. This will also launch the server
-  client.start();
+  // Format on save
+  const onSaveListener = vscode.workspace.onWillSaveTextDocument((event) => {
+    const enabled = vscode.workspace.getConfiguration("madlib").get("format.onSave");
+    if (!enabled) return;
+    if (event.document.languageId !== "madlib") return;
+    event.waitUntil(
+      vscode.commands.executeCommand("editor.action.formatDocument")
+    );
+  });
+  context.subscriptions.push(onSaveListener);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("madlib.restartLanguageServer", async () => {
-      await client.stop();
-      client.start();
-      vscode.window.showInformationMessage("Madlib language server restarted.");
+      setStatusBar("starting");
+      try {
+        await client.stop();
+        await client.start();
+        vscode.window.showInformationMessage("Madlib language server restarted.");
+      } catch (e) {
+        setStatusBar("error");
+        vscode.window.showErrorMessage(`Madlib: Failed to restart language server: ${e.message}`);
+      }
     })
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("madlib.showOutputChannel", () => {
+      outputChannel.show();
+    })
+  );
+
+  try {
+    await client.start();
+  } catch (e) {
+    setStatusBar("error");
+    vscode.window.showErrorMessage(`Madlib: Language server failed to start: ${e.message}`);
+  }
 };
 
-exports.deactivate = () => {
-  if (!client) {
-    return undefined;
+exports.deactivate = async () => {
+  if (client) {
+    await client.stop();
   }
-  return client.stop();
 };
